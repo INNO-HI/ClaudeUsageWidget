@@ -12,8 +12,9 @@
 </p>
 
 <p align="center">
-  <a href="https://inno-hi-inc.github.io/ClaudeUsageWidget/">Homepage</a> ·
+  <a href="https://inno-hi.github.io/ClaudeUsageWidget/">Homepage</a> ·
   <a href="https://github.com/INNO-HI/ClaudeUsageWidget/releases">Downloads</a> ·
+  <a href="https://velog.io/@khwee2000/Claude-Code-%EC%82%AC%EC%9A%A9%EB%9F%89-%ED%99%95%EC%9D%B8%ED%95%98%EB%8B%A4%EA%B0%80-%EA%B2%B0%EA%B5%AD-%EC%A7%81%EC%A0%91-%EC%9C%84%EC%A0%AF-%EB%A7%8C%EB%93%A4%EC%96%B4%EB%B2%84%EB%A0%B8%EB%8B%A4">Blog</a> ·
   <a href="https://github.com/INNO-HI/ClaudeUsageWidget/issues">Issues</a>
 </p>
 
