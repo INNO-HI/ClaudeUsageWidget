@@ -13,8 +13,8 @@
 
 <p align="center">
   <a href="https://inno-hi-inc.github.io/ClaudeUsageWidget/">Homepage</a> ·
-  <a href="https://github.com/INNO-HI-Inc/ClaudeUsageWidget/releases">Downloads</a> ·
-  <a href="https://github.com/INNO-HI-Inc/ClaudeUsageWidget/issues">Issues</a>
+  <a href="https://github.com/INNO-HI/ClaudeUsageWidget/releases">Downloads</a> ·
+  <a href="https://github.com/INNO-HI/ClaudeUsageWidget/issues">Issues</a>
 </p>
 
 ---
@@ -64,7 +64,7 @@
 > Requires macOS 13.0+
 
 ```bash
-git clone https://github.com/INNO-HI-Inc/ClaudeUsageWidget.git
+git clone https://github.com/INNO-HI/ClaudeUsageWidget.git
 cd ClaudeUsageWidget
 
 # Menu Bar version
@@ -83,7 +83,7 @@ open "build/Claude Widget.app"
 > Requires Node.js 18+
 
 ```bash
-git clone https://github.com/INNO-HI-Inc/ClaudeUsageWidget.git
+git clone https://github.com/INNO-HI/ClaudeUsageWidget.git
 cd ClaudeUsageWidget
 node src/server.js
 ```
