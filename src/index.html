@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Widget</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="widget">
+    <!-- Drag Handle -->
+    <div class="drag-handle">
+      <div class="drag-bar"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <svg class="claude-icon" viewBox="0 0 24 24" width="28" height="28">
+          <path clip-rule="evenodd" d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z" fill="#D97757" fill-rule="evenodd"/>
+        </svg>
+        <div class="header-info">
+          <div class="header-title-row">
+            <span class="app-title">Claude Monitor</span>
+            <span class="plan-badge" id="planBadge">Max</span>
+          </div>
+          <div class="status-row" id="statusRow">
+            <span class="status-icon checking">&#8635;</span>
+            <span class="status-text" id="statusText">Checking credentials...</span>
+          </div>
+        </div>
+      </div>
+      <button class="settings-btn" id="settingsBtn" title="Settings">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
+          <path fill-rule="evenodd" d="M8.34 1.804A1 1 0 019.32 1h1.36a1 1 0 01.98.804l.295 1.473c.497.179.971.405 1.416.67l1.382-.587a1 1 0 011.178.314l.68.966a1 1 0 01-.11 1.282l-1.086.89c.065.514.065 1.062 0 1.576l1.086.89a1 1 0 01.11 1.282l-.68.966a1 1 0 01-1.178.314l-1.382-.587c-.445.265-.919.491-1.416.67l-.295 1.473a1 1 0 01-.98.804H9.32a1 1 0 01-.98-.804l-.295-1.473a7.957 7.957 0 01-1.416-.67l-1.382.587a1 1 0 01-1.178-.314l-.68-.966a1 1 0 01.11-1.282l1.086-.89a7.94 7.94 0 010-1.576l-1.086-.89a1 1 0 01-.11-1.282l.68-.966a1 1 0 011.178-.314l1.382.587c.445-.265.919-.491 1.416-.67L8.34 1.804zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Settings (hidden by default) -->
+    <div class="settings-panel" id="settingsPanel" style="display:none">
+      <div class="settings-group">
+        <label class="settings-label">Language</label>
+        <div class="lang-buttons">
+          <button class="lang-btn active" data-lang="en">English</button>
+          <button class="lang-btn" data-lang="ko">한국어</button>
+        </div>
+      </div>
+      <div class="settings-group">
+        <label class="settings-label">Credentials</label>
+        <div class="cred-row">
+          <span class="cred-dot" id="credDot"></span>
+          <span class="cred-status" id="credStatus">Checking...</span>
+          <button class="refresh-btn" id="credRefreshBtn">Refresh</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Current Session -->
+      <div class="glass-card">
+        <div class="card-header">
+          <span class="card-title">Current session</span>
+          <span class="card-percent" id="sessionPercent">0%</span>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bg">
+            <div class="progress-fill" id="sessionProgress"></div>
+          </div>
+          <div class="progress-scale">
+            <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+          </div>
+        </div>
+        <span class="reset-text" id="sessionReset">Resets in --</span>
+      </div>
+
+      <!-- Weekly Limits -->
+      <div class="glass-card">
+        <div class="card-header">
+          <span class="card-title">Weekly limits</span>
+          <a class="learn-more" href="#" id="learnMore">Learn more</a>
+        </div>
+
+        <!-- All models -->
+        <div class="sub-header">
+          <span class="sub-title">All models</span>
+          <span class="sub-percent" id="allModelsPercent">0%</span>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bg">
+            <div class="progress-fill" id="allModelsProgress"></div>
+          </div>
+        </div>
+        <span class="reset-text" id="allModelsReset"></span>
+
+        <div class="card-divider"></div>
+
+        <!-- Sonnet only -->
+        <div class="sub-header">
+          <span class="sub-title">Sonnet only</span>
+          <span class="sub-percent" id="sonnetPercent">0%</span>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bg">
+            <div class="progress-fill" id="sonnetProgress"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto Sync -->
+      <div class="sync-row">
+        <span class="sync-label">Auto-sync</span>
+        <div class="sync-buttons">
+          <button class="sync-btn" data-interval="0">manual</button>
+          <button class="sync-btn active" data-interval="300">5m</button>
+          <button class="sync-btn" data-interval="600">10m</button>
+          <button class="sync-btn" data-interval="1800">30m</button>
+          <button class="sync-btn" data-interval="3600">1h</button>
+        </div>
+      </div>
+      <span class="sync-note">Note: API has rate limits. Minimum 5min recommended.</span>
+    </div>
+
+    <!-- Footer -->
+    <div class="divider"></div>
+    <div class="footer">
+      <span class="version">v1.0.0</span>
+      <span class="last-sync" id="lastSync">never</span>
+      <button class="footer-btn sync" id="syncBtn">sync</button>
+      <span class="footer-sep">|</span>
+      <button class="footer-btn quit" id="quitBtn">quit</button>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "claude-usage-widget",
+  "version": "1.0.0",
+  "description": "Claude Code Usage Widget - Cross Platform",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  }
+}
