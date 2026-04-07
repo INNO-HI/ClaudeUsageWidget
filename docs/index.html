@@ -33,6 +33,43 @@
       overflow-x: hidden;
     }
 
+    /* ===== Language Toggle ===== */
+    .lang-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .lang-toggle button {
+      border: none;
+      background: transparent;
+      padding: 5px 14px;
+      border-radius: 17px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-sub);
+      transition: all 0.25s ease;
+      font-family: inherit;
+    }
+
+    .lang-toggle button.active {
+      background: var(--claude);
+      color: white;
+      box-shadow: 0 2px 8px rgba(217,119,87,0.3);
+    }
+
     /* ===== Hero ===== */
     .hero {
       position: relative;
@@ -237,10 +274,157 @@
       pointer-events: none; z-index: -1;
     }
 
+    /* ===== Buddy Section ===== */
+    .buddy-section {
+      padding: 80px 24px;
+      background: white;
+    }
+
+    .buddy-section h2 {
+      text-align: center;
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+
+    .buddy-subtitle {
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 16px;
+      margin-bottom: 48px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .buddy-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .buddy-ascii-showcase {
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 32px;
+      overflow-x: auto;
+      box-shadow: 0 8px 32px rgba(26,26,46,0.3);
+      border: 1px solid rgba(217,119,87,0.15);
+    }
+
+    .buddy-ascii-grid {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .buddy-ascii-item {
+      text-align: center;
+      min-width: 100px;
+    }
+
+    .buddy-ascii-item pre {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 13px;
+      line-height: 1.3;
+      color: #D97757;
+      white-space: pre;
+      margin-bottom: 8px;
+    }
+
+    .buddy-ascii-item .buddy-name {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 0.5px;
+    }
+
+    .buddy-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .buddy-info-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .buddy-info-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .buddy-info-card p {
+      font-size: 13px;
+      color: var(--text-sub);
+      line-height: 1.6;
+    }
+
+    .buddy-commands {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .buddy-command {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    .buddy-command code {
+      background: #F3F4F6;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-weight: 600;
+      color: var(--claude);
+      white-space: nowrap;
+    }
+
+    .buddy-command span {
+      color: var(--text-sub);
+    }
+
+    .rarity-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .rarity-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    .rarity-common { background: #E5E7EB; color: #6B7280; }
+    .rarity-uncommon { background: #D1FAE5; color: #059669; }
+    .rarity-rare { background: #DBEAFE; color: #2563EB; }
+    .rarity-epic { background: #EDE9FE; color: #7C3AED; }
+    .rarity-legendary { background: linear-gradient(135deg, #FEF3C7, #FDE68A); color: #B45309; box-shadow: 0 2px 8px rgba(180,83,9,0.15); }
+
     /* ===== Download Section ===== */
     .download-section {
       padding: 80px 24px 100px;
-      background: white;
     }
 
     .download-section h2 {
@@ -387,6 +571,7 @@
     /* ===== Features ===== */
     .features-section {
       padding: 80px 24px;
+      background: white;
     }
 
     .features-section h2 {
@@ -456,11 +641,19 @@
 
     footer a:hover { text-decoration: underline; }
 
+    /* ===== i18n transition ===== */
+    [data-i18n] {
+      transition: opacity 0.2s ease;
+    }
+
     /* ===== Responsive ===== */
     @media (max-width: 640px) {
       .hero-buttons { flex-direction: column; align-items: center; }
       .download-grid { grid-template-columns: 1fr; }
       .features-grid { grid-template-columns: 1fr; }
+      .buddy-info-grid { grid-template-columns: 1fr; }
+      .buddy-ascii-grid { gap: 16px; }
+      .buddy-ascii-item pre { font-size: 11px; }
     }
 
     /* ===== Animate on scroll ===== */
@@ -477,23 +670,33 @@
 </head>
 <body>
 
+  <!-- ===== LANGUAGE TOGGLE ===== -->
+  <div class="lang-toggle">
+    <button id="lang-en" class="active" onclick="setLang('en')">EN</button>
+    <button id="lang-ko" onclick="setLang('ko')">KO</button>
+  </div>
+
   <!-- ===== HERO ===== -->
   <section class="hero">
     <svg class="hero-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path clip-rule="evenodd" d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z" fill="#D97757" fill-rule="evenodd"/>
     </svg>
 
-    <h1>Claude Usage Widget</h1>
-    <p>Track your Claude Code usage in real-time. Glassmorphism desktop widget for macOS & Windows.</p>
+    <h1 data-i18n="hero.title">Claude Usage Widget</h1>
+    <p data-i18n="hero.subtitle">Track your Claude Code usage in real-time. Glassmorphism desktop widget for macOS & Windows.</p>
 
     <div class="hero-buttons">
       <a href="#download" class="btn btn-primary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-        Download
+        <span data-i18n="hero.download">Download</span>
       </a>
       <a href="https://github.com/INNO-HI/ClaudeUsageWidget" target="_blank" class="btn btn-secondary">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
         GitHub
+      </a>
+      <a href="https://velog.io/@khwee2000/Claude-Code-%EC%82%AC%EC%9A%A9%EB%9F%89-%ED%99%95%EC%9D%B8%ED%95%98%EB%8B%A4%EA%B0%80-%EA%B2%B0%EA%B5%AD-%EC%A7%81%EC%A0%91-%EC%9C%84%EC%A0%AF-%EB%A7%8C%EB%93%A4%EC%96%B4%EB%B2%84%EB%A0%B8%EB%8B%A4" target="_blank" class="btn btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+        <span data-i18n="hero.blog">Blog</span>
       </a>
     </div>
 
@@ -547,10 +750,105 @@
     </div>
   </section>
 
+  <!-- ===== BUDDY ===== -->
+  <section class="buddy-section" id="buddy">
+    <h2 class="fade-up" data-i18n="buddy.title">Claude Code Buddy</h2>
+    <p class="buddy-subtitle fade-up" data-i18n="buddy.subtitle">Adopt a terminal pet companion that lives alongside your Claude Code sessions. 18 species, 5 rarity tiers, and a 1% shiny chance.</p>
+
+    <div class="buddy-content">
+      <!-- ASCII Art Showcase -->
+      <div class="buddy-ascii-showcase fade-up">
+        <div class="buddy-ascii-grid">
+          <div class="buddy-ascii-item">
+            <pre> /\_/\
+( o.o )
+ > ^ <</pre>
+            <span class="buddy-name">Cat</span>
+          </div>
+          <div class="buddy-ascii-item">
+            <pre> /\  /\
+{  `  }
+(  __  )
+ `--'</pre>
+            <span class="buddy-name">Dragon</span>
+          </div>
+          <div class="buddy-ascii-item">
+            <pre>  __
+&lt;(o )___
+ ( ._&gt; /
+  `---'</pre>
+            <span class="buddy-name">Duck</span>
+          </div>
+          <div class="buddy-ascii-item">
+            <pre> .-.
+(o o)
+| O |
+ \_/</pre>
+            <span class="buddy-name">Ghost</span>
+          </div>
+          <div class="buddy-ascii-item">
+            <pre> ,___,
+(o,o )
+/)_  )
+ " "</pre>
+            <span class="buddy-name">Owl</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Cards -->
+      <div class="buddy-info-grid">
+        <div class="buddy-info-card fade-up">
+          <h3>
+            <span style="font-size:20px">&#127922;</span>
+            <span data-i18n="buddy.stats.title">Species & Stats</span>
+          </h3>
+          <p data-i18n="buddy.stats.desc">18 unique species with 5 stats each (Energy, Mood, Intellect, Charm, Luck). Every buddy is different -- discover yours!</p>
+          <div class="rarity-badges" style="margin-top:12px">
+            <span class="rarity-badge rarity-common" data-i18n="buddy.rarity.common">Common</span>
+            <span class="rarity-badge rarity-uncommon" data-i18n="buddy.rarity.uncommon">Uncommon</span>
+            <span class="rarity-badge rarity-rare" data-i18n="buddy.rarity.rare">Rare</span>
+            <span class="rarity-badge rarity-epic" data-i18n="buddy.rarity.epic">Epic</span>
+            <span class="rarity-badge rarity-legendary" data-i18n="buddy.rarity.legendary">Legendary</span>
+          </div>
+        </div>
+
+        <div class="buddy-info-card fade-up">
+          <h3>
+            <span style="font-size:20px">&#128187;</span>
+            <span data-i18n="buddy.commands.title">Commands</span>
+          </h3>
+          <div class="buddy-commands">
+            <div class="buddy-command">
+              <code>/buddy</code>
+              <span data-i18n="buddy.cmd.summon">Summon a new buddy</span>
+            </div>
+            <div class="buddy-command">
+              <code>/buddy pet</code>
+              <span data-i18n="buddy.cmd.pet">Pet your buddy</span>
+            </div>
+            <div class="buddy-command">
+              <code>/buddy off</code>
+              <span data-i18n="buddy.cmd.off">Dismiss buddy</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="buddy-info-card fade-up">
+          <h3>
+            <span style="font-size:20px">&#10024;</span>
+            <span data-i18n="buddy.shiny.title">Shiny Buddies</span>
+          </h3>
+          <p data-i18n="buddy.shiny.desc">Every buddy has a 1% chance of being shiny -- a special variant with unique ASCII art and bonus stats. Can you find one?</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== DOWNLOAD ===== -->
   <section class="download-section" id="download">
-    <h2 class="fade-up">Download</h2>
-    <p class="download-subtitle fade-up">Choose your platform</p>
+    <h2 class="fade-up" data-i18n="download.title">Download</h2>
+    <p class="download-subtitle fade-up" data-i18n="download.subtitle">Choose your platform</p>
 
     <div class="download-grid">
       <!-- macOS -->
@@ -561,17 +859,17 @@
           </svg>
         </div>
         <h3>macOS</h3>
-        <p class="platform-sub">Native Swift app + Web widget</p>
-        <div class="requirements">
+        <p class="platform-sub" data-i18n="download.mac.sub">Native Swift app + Web widget</p>
+        <div class="requirements" data-i18n-html="download.mac.req">
           macOS 13.0+<br>
           Native <code>.app</code> bundle (menu bar)<br>
           + Standalone <code>.app</code> (desktop widget)
         </div>
-        <a href="https://github.com/INNO-HI/ClaudeUsageWidget/releases/latest" class="download-btn mac">
+        <a href="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.3.0/Claude-Widget-macOS.zip" class="download-btn mac">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-          Download for Mac
+          <span data-i18n="download.mac.btn">Download for Mac</span>
         </a>
-        <span class="or-text">or build from source: <code>bash build.sh</code></span>
+        <span class="or-text" data-i18n-html="download.mac.or">or build from source: <code>bash build.sh</code></span>
       </div>
 
       <!-- Windows -->
@@ -582,61 +880,66 @@
           </svg>
         </div>
         <h3>Windows</h3>
-        <p class="platform-sub">Cross-platform web widget</p>
-        <div class="requirements">
+        <p class="platform-sub" data-i18n="download.win.sub">Cross-platform web widget</p>
+        <div class="requirements" data-i18n-html="download.win.req">
           Windows 10/11<br>
           Requires <code>Node.js</code> 18+<br>
           Runs in your default browser
         </div>
-        <a href="https://github.com/INNO-HI/ClaudeUsageWidget/releases/latest" class="download-btn win">
+        <a href="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.3.0/Claude-Widget-Cross.zip" class="download-btn win">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-          Download for Windows
+          <span data-i18n="download.win.btn">Download for Windows</span>
         </a>
-        <span class="or-text">or run directly: <code>node src/server.js</code></span>
+        <span class="or-text" data-i18n-html="download.win.or">or run directly: <code>node src/server.js</code></span>
       </div>
     </div>
   </section>
 
   <!-- ===== FEATURES ===== -->
   <section class="features-section">
-    <h2 class="fade-up">Features</h2>
+    <h2 class="fade-up" data-i18n="features.title">Features</h2>
     <div class="features-grid">
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#128203;</span>
-        <h3>Real-time Usage</h3>
-        <p>Monitor your 5-hour session and 7-day weekly limits at a glance.</p>
+        <h3 data-i18n="features.realtime.title">Real-time Usage</h3>
+        <p data-i18n="features.realtime.desc">Monitor your 5-hour session and 7-day weekly limits at a glance.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#127912;</span>
-        <h3>Glassmorphism UI</h3>
-        <p>Beautiful frosted glass design with smooth animations and hover effects.</p>
+        <h3 data-i18n="features.glass.title">Glassmorphism UI</h3>
+        <p data-i18n="features.glass.desc">Beautiful frosted glass design with smooth animations and hover effects.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#128274;</span>
-        <h3>Zero Token Cost</h3>
-        <p>Uses OAuth usage API only. No Claude messages sent, no tokens consumed.</p>
+        <h3 data-i18n="features.zero.title">Zero Token Cost</h3>
+        <p data-i18n="features.zero.desc">Uses OAuth usage API only. No Claude messages sent, no tokens consumed.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#128260;</span>
-        <h3>Auto Sync</h3>
-        <p>Configurable auto-refresh: 5m, 10m, 30m, 1h, or manual.</p>
+        <h3 data-i18n="features.sync.title">Auto Sync</h3>
+        <p data-i18n="features.sync.desc">Configurable auto-refresh: 5m, 10m, 30m, 1h, or manual.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#127760;</span>
-        <h3>Cross Platform</h3>
-        <p>Native Swift on macOS, Node.js web widget on Windows & Linux.</p>
+        <h3 data-i18n="features.cross.title">Cross Platform</h3>
+        <p data-i18n="features.cross.desc">Native Swift on macOS, Node.js web widget on Windows & Linux.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#127468;&#127463;</span>
-        <h3>Bilingual</h3>
-        <p>English and Korean language support built-in.</p>
+        <h3 data-i18n="features.bilingual.title">Bilingual</h3>
+        <p data-i18n="features.bilingual.desc">English and Korean language support built-in.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#128054;</span>
+        <h3 data-i18n="features.buddy.title">Claude Code Buddy</h3>
+        <p data-i18n="features.buddy.desc">Adopt a terminal pet with ASCII art. 18 species, 5 rarity tiers, and a 1% shiny chance.</p>
       </div>
     </div>
   </section>
 
   <!-- ===== FOOTER ===== -->
   <footer>
-    <p>
+    <p data-i18n-html="footer.text">
       Built with &#9825; for Claude Code users &middot;
       <a href="https://github.com/INNO-HI/ClaudeUsageWidget">GitHub</a> &middot;
       <a href="https://github.com/INNO-HI/ClaudeUsageWidget/issues">Report Issue</a>
@@ -644,13 +947,155 @@
   </footer>
 
   <script>
-    // Scroll animation
+    // ===== i18n =====
+    const i18n = {
+      en: {
+        'hero.title': 'Claude Usage Widget',
+        'hero.subtitle': 'Track your Claude Code usage in real-time. Glassmorphism desktop widget for macOS & Windows.',
+        'hero.download': 'Download',
+        'hero.blog': 'Blog',
+        'buddy.title': 'Claude Code Buddy',
+        'buddy.subtitle': 'Adopt a terminal pet companion that lives alongside your Claude Code sessions. 18 species, 5 rarity tiers, and a 1% shiny chance.',
+        'buddy.stats.title': 'Species & Stats',
+        'buddy.stats.desc': '18 unique species with 5 stats each (Energy, Mood, Intellect, Charm, Luck). Every buddy is different -- discover yours!',
+        'buddy.rarity.common': 'Common',
+        'buddy.rarity.uncommon': 'Uncommon',
+        'buddy.rarity.rare': 'Rare',
+        'buddy.rarity.epic': 'Epic',
+        'buddy.rarity.legendary': 'Legendary',
+        'buddy.commands.title': 'Commands',
+        'buddy.cmd.summon': 'Summon a new buddy',
+        'buddy.cmd.pet': 'Pet your buddy',
+        'buddy.cmd.off': 'Dismiss buddy',
+        'buddy.shiny.title': 'Shiny Buddies',
+        'buddy.shiny.desc': 'Every buddy has a 1% chance of being shiny -- a special variant with unique ASCII art and bonus stats. Can you find one?',
+        'download.title': 'Download',
+        'download.subtitle': 'Choose your platform',
+        'download.mac.sub': 'Native Swift app + Web widget',
+        'download.mac.btn': 'Download for Mac',
+        'download.win.sub': 'Cross-platform web widget',
+        'download.win.btn': 'Download for Windows',
+        'features.title': 'Features',
+        'features.realtime.title': 'Real-time Usage',
+        'features.realtime.desc': 'Monitor your 5-hour session and 7-day weekly limits at a glance.',
+        'features.glass.title': 'Glassmorphism UI',
+        'features.glass.desc': 'Beautiful frosted glass design with smooth animations and hover effects.',
+        'features.zero.title': 'Zero Token Cost',
+        'features.zero.desc': 'Uses OAuth usage API only. No Claude messages sent, no tokens consumed.',
+        'features.sync.title': 'Auto Sync',
+        'features.sync.desc': 'Configurable auto-refresh: 5m, 10m, 30m, 1h, or manual.',
+        'features.cross.title': 'Cross Platform',
+        'features.cross.desc': 'Native Swift on macOS, Node.js web widget on Windows & Linux.',
+        'features.bilingual.title': 'Bilingual',
+        'features.bilingual.desc': 'English and Korean language support built-in.',
+        'features.buddy.title': 'Claude Code Buddy',
+        'features.buddy.desc': 'Adopt a terminal pet with ASCII art. 18 species, 5 rarity tiers, and a 1% shiny chance.',
+      },
+      ko: {
+        'hero.title': 'Claude Usage Widget',
+        'hero.subtitle': 'Claude Code 사용량을 실시간으로 추적하세요. macOS & Windows용 글래스모피즘 데스크톱 위젯.',
+        'hero.download': '다운로드',
+        'hero.blog': '블로그',
+        'buddy.title': 'Claude Code 버디',
+        'buddy.subtitle': 'Claude Code 세션과 함께하는 터미널 펫 컴패니언을 입양하세요. 18종, 5단계 희귀도, 1% 확률의 샤이니.',
+        'buddy.stats.title': '종류 & 스탯',
+        'buddy.stats.desc': '각 5개 스탯(에너지, 기분, 지능, 매력, 행운)을 가진 18종의 고유한 버디. 당신만의 버디를 발견하세요!',
+        'buddy.rarity.common': '커먼',
+        'buddy.rarity.uncommon': '언커먼',
+        'buddy.rarity.rare': '레어',
+        'buddy.rarity.epic': '에픽',
+        'buddy.rarity.legendary': '레전더리',
+        'buddy.commands.title': '명령어',
+        'buddy.cmd.summon': '새 버디 소환',
+        'buddy.cmd.pet': '버디 쓰다듬기',
+        'buddy.cmd.off': '버디 해제',
+        'buddy.shiny.title': '샤이니 버디',
+        'buddy.shiny.desc': '모든 버디에게는 1% 확률로 샤이니가 등장합니다. 특별한 ASCII 아트와 보너스 스탯을 가진 희귀 변종이에요!',
+        'download.title': '다운로드',
+        'download.subtitle': '플랫폼을 선택하세요',
+        'download.mac.sub': '네이티브 Swift 앱 + 웹 위젯',
+        'download.mac.btn': 'Mac용 다운로드',
+        'download.win.sub': '크로스 플랫폼 웹 위젯',
+        'download.win.btn': 'Windows용 다운로드',
+        'features.title': '기능',
+        'features.realtime.title': '실시간 사용량',
+        'features.realtime.desc': '5시간 세션과 7일 주간 한도를 한눈에 모니터링하세요.',
+        'features.glass.title': '글래스모피즘 UI',
+        'features.glass.desc': '부드러운 애니메이션과 호버 효과를 갖춘 아름다운 프로스트 글래스 디자인.',
+        'features.zero.title': '토큰 비용 제로',
+        'features.zero.desc': 'OAuth 사용량 API만 사용. Claude 메시지를 보내지 않아 토큰을 소모하지 않습니다.',
+        'features.sync.title': '자동 동기화',
+        'features.sync.desc': '자동 새로고침 설정: 5분, 10분, 30분, 1시간 또는 수동.',
+        'features.cross.title': '크로스 플랫폼',
+        'features.cross.desc': 'macOS는 네이티브 Swift, Windows & Linux는 Node.js 웹 위젯.',
+        'features.bilingual.title': '이중 언어',
+        'features.bilingual.desc': '영어와 한국어 지원이 기본으로 내장되어 있습니다.',
+        'features.buddy.title': '클로드 코드 버디',
+        'features.buddy.desc': 'ASCII 아트 터미널 펫을 입양하세요. 18종, 5단계 희귀도, 1% 샤이니 확률.',
+      }
+    };
+
+    const i18nHtml = {
+      en: {
+        'download.mac.req': 'macOS 13.0+<br>Native <code>.app</code> bundle (menu bar)<br>+ Standalone <code>.app</code> (desktop widget)',
+        'download.mac.or': 'or build from source: <code>bash build.sh</code>',
+        'download.win.req': 'Windows 10/11<br>Requires <code>Node.js</code> 18+<br>Runs in your default browser',
+        'download.win.or': 'or run directly: <code>node src/server.js</code>',
+        'footer.text': 'Built with &#9825; for Claude Code users &middot; <a href="https://github.com/INNO-HI/ClaudeUsageWidget">GitHub</a> &middot; <a href="https://github.com/INNO-HI/ClaudeUsageWidget/issues">Report Issue</a>',
+      },
+      ko: {
+        'download.mac.req': 'macOS 13.0+<br>네이티브 <code>.app</code> 번들 (메뉴 바)<br>+ 독립형 <code>.app</code> (데스크톱 위젯)',
+        'download.mac.or': '또는 소스에서 빌드: <code>bash build.sh</code>',
+        'download.win.req': 'Windows 10/11<br><code>Node.js</code> 18+ 필요<br>기본 브라우저에서 실행',
+        'download.win.or': '또는 직접 실행: <code>node src/server.js</code>',
+        'footer.text': 'Claude Code 사용자를 위해 &#9825;로 제작 &middot; <a href="https://github.com/INNO-HI/ClaudeUsageWidget">GitHub</a> &middot; <a href="https://github.com/INNO-HI/ClaudeUsageWidget/issues">이슈 보고</a>',
+      }
+    };
+
+    let currentLang = 'en';
+
+    function setLang(lang) {
+      currentLang = lang;
+
+      // Update toggle buttons
+      document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+      document.getElementById('lang-ko').classList.toggle('active', lang === 'ko');
+
+      // Update html lang attribute
+      document.documentElement.lang = lang === 'ko' ? 'ko' : 'en';
+
+      // Update text content with smooth fade
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[lang] && i18n[lang][key]) {
+          el.style.opacity = '0';
+          setTimeout(() => {
+            el.textContent = i18n[lang][key];
+            el.style.opacity = '1';
+          }, 150);
+        }
+      });
+
+      // Update HTML content
+      document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        const key = el.getAttribute('data-i18n-html');
+        if (i18nHtml[lang] && i18nHtml[lang][key]) {
+          el.style.opacity = '0';
+          setTimeout(() => {
+            el.innerHTML = i18nHtml[lang][key];
+            el.style.opacity = '1';
+          }, 150);
+        }
+      });
+    }
+
+    // ===== Scroll animation =====
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: 0.1 });
     document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
-    // Demo animation
+    // ===== Demo animation =====
     setTimeout(() => {
       const bar = document.getElementById('demoBar');
       const pct = document.getElementById('demoPercent');
