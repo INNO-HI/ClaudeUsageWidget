@@ -26,6 +26,7 @@
 - **Glassmorphism UI** — Frosted glass design with smooth animations
 - **Zero Token Cost** — Uses OAuth usage API only, no Claude messages sent
 - **Auto Sync** — Configurable intervals: 5m / 10m / 30m / 1h / manual
+- **Claude Code Buddy** — Official terminal pet system integrated (18 species, 5 rarity tiers, ASCII art)
 - **Cross Platform** — Native Swift on macOS, Node.js web widget on Windows & Linux
 - **Bilingual** — English / 한국어
 
@@ -35,26 +36,42 @@
 
 <table>
   <tr>
-    <td align="center"><strong>macOS (Native)</strong></td>
-    <td align="center"><strong>Windows / Web</strong></td>
+    <td align="center"><strong>Web Widget</strong></td>
+    <td align="center"><strong>macOS Desktop Widget</strong></td>
   </tr>
   <tr>
-    <td>
-      <ul>
-        <li>Menu bar app with popover</li>
-        <li>Desktop floating widget</li>
-        <li>NSVisualEffectView blur</li>
-      </ul>
-    </td>
-    <td>
-      <ul>
-        <li>Browser-based widget</li>
-        <li>CSS backdrop-filter blur</li>
-        <li>Local Node.js server</li>
-      </ul>
-    </td>
+    <td><img src="screenshots/04-web-widget-clean.png" width="280" alt="Web Widget"/></td>
+    <td><img src="screenshots/10-desktop-widget-crop.png" width="280" alt="Desktop Widget"/></td>
   </tr>
 </table>
+
+---
+
+## Claude Code Buddy
+
+The widget integrates the official [Claude Code Buddy](https://docs.anthropic.com/en/docs/claude-code) terminal pet system.
+
+```
+  /buddy        → Hatch your buddy
+  /buddy pet    → Pet your buddy (mood +1)
+  /buddy off    → Put buddy to sleep
+```
+
+**18 species** — Each buddy is deterministically generated from your account ID. You can't choose or reroll.
+
+```
+  Cat         Dragon        Duck          Ghost         Owl
+ /\_/\       /\_/\_          __          .___.        {o,o}
+( · · )     (  · · )       >(··)__     | · · |      /)___)
+ > ^ <       \ ~~ /         (  __)>    |  o  |       " "
+             /|  |\          ||         \^^^/
+```
+
+**5 rarity tiers** — Common (60%) · Uncommon (25%) · Rare (10%) · Epic (4%) · Legendary (1%)
+
+**5 stats** — DEBUGGING · PATIENCE · CHAOS · WISDOM · SNARK
+
+**1% Shiny** variant with sparkle effects
 
 ---
 
@@ -64,17 +81,11 @@
 
 > Requires macOS 13.0+
 
+**Download** from [Releases](https://github.com/INNO-HI/ClaudeUsageWidget/releases) or build from source:
+
 ```bash
 git clone https://github.com/INNO-HI/ClaudeUsageWidget.git
 cd ClaudeUsageWidget
-
-# Menu Bar version
-cd ../ClaudeUsageBar
-bash build.sh
-open "build/Claude Monitor.app"
-
-# Desktop Widget version
-cd ../ClaudeUsageWidget
 bash build.sh
 open "build/Claude Widget.app"
 ```
@@ -89,19 +100,17 @@ cd ClaudeUsageWidget
 node src/server.js
 ```
 
-The widget opens automatically in your default browser at `http://127.0.0.1:19522`.
+Opens automatically at `http://127.0.0.1:19522`.
 
 ---
 
 ## Prerequisites
 
-This widget reads your Claude Code OAuth credentials to fetch usage data.
-
 1. Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 2. Run `claude login` in your terminal
 3. Launch the widget
 
-The credentials are read from `~/.claude/.credentials.json` (or macOS Keychain).
+Credentials are read from `~/.claude/.credentials.json` (or macOS Keychain).
 
 ---
 
@@ -121,28 +130,13 @@ The credentials are read from `~/.claude/.credentials.json` (or macOS Keychain).
 
 ---
 
-## Project Structure
-
-```
-ClaudeUsageWidget/
-├── src/
-│   ├── server.js       # Node.js API proxy server
-│   ├── index.html      # Widget UI
-│   ├── style.css       # Glassmorphism styles
-│   └── renderer.js     # Frontend logic
-├── docs/
-│   └── index.html      # GitHub Pages landing page
-└── package.json
-```
-
----
-
 ## Configuration
 
 | Setting | Options | Default |
 |---------|---------|---------|
 | Auto-sync | manual / 5m / 10m / 30m / 1h | 5m |
 | Language | English / 한국어 | English |
+| Buddy | /buddy · /buddy pet · /buddy off | off |
 
 ---
 
@@ -150,7 +144,7 @@ ClaudeUsageWidget/
 
 | Platform | Stack |
 |----------|-------|
-| macOS (native) | Swift, SwiftUI, AppKit |
+| macOS (native) | Swift, SwiftUI, AppKit, Security (Keychain) |
 | Cross-platform | Node.js, HTML/CSS/JS |
 
 ---
