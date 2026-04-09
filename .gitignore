@@ -1,0 +1,29 @@
+# Secrets & credentials
+.env
+.env.*
+*.credentials.json
+*.key
+*.pem
+secrets/
+.claude/
+
+# Node
+node_modules/
+npm-debug.log
+package-lock.json
+
+# Build artifacts
+build/
+dist/
+*.app
+*.dmg
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
