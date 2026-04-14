@@ -166,6 +166,13 @@ async function doSync() {
       statusIcon.className = 'status-icon error';
       statusText.textContent = t().notLoggedIn;
       statusText.className = 'status-text error';
+    } else if (err.message === 'TOKEN_EXPIRED') {
+      statusIcon.textContent = '\u26A0';
+      statusIcon.className = 'status-icon error';
+      statusText.textContent = lang === 'ko'
+        ? '토큰 만료. Claude Code를 한 번 실행해주세요'
+        : 'Token expired. Please use Claude Code to refresh';
+      statusText.className = 'status-text error';
     } else {
       statusIcon.textContent = '\u26A0';
       statusIcon.className = 'status-icon error';

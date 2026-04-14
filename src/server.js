@@ -9,8 +9,6 @@ const { exec } = require('child_process');
 const PORT = 19522;
 const HOST = '127.0.0.1';
 const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
-const TOKEN_REFRESH_URL = 'https://console.anthropic.com/v1/oauth/token';
-const OAUTH_CLIENT_ID = '9d1c250a-e61b-44d9-88ed-5944d1962f5e';
 
 // ===== Security: session token =====
 // Generated at startup, required in cookie for all API requests.
@@ -31,27 +29,17 @@ const ALLOWED_STATIC = new Set([
   'renderer.js',
 ]);
 
-// ===== Credentials =====
+// ===== Credentials (READ-ONLY) =====
+// Widget never writes or refreshes. Claude Code owns the refresh flow.
 function readCredentials() {
   const credPath = path.join(os.homedir(), '.claude', '.credentials.json');
   try {
     const data = fs.readFileSync(credPath, 'utf-8');
     const json = JSON.parse(data);
     const oauth = json.claudeAiOauth;
-    if (!oauth || !oauth.accessToken || !oauth.refreshToken) return null;
+    if (!oauth || !oauth.accessToken) return null;
     return oauth;
   } catch { return null; }
-}
-
-function saveCredentials(creds) {
-  const credPath = path.join(os.homedir(), '.claude', '.credentials.json');
-  try {
-    const payload = JSON.stringify({ claudeAiOauth: creds }, null, 2);
-    // Write with restrictive permissions (owner read/write only)
-    fs.writeFileSync(credPath, payload, { mode: 0o600 });
-    // Ensure mode is correct even if file already existed
-    try { fs.chmodSync(credPath, 0o600); } catch {}
-  } catch {}
 }
 
 // ===== HTTPS helper =====
@@ -77,47 +65,25 @@ function httpsRequest(url, options, body) {
   });
 }
 
-// ===== Refresh token =====
-async function refreshToken(creds) {
-  const res = await httpsRequest(TOKEN_REFRESH_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  }, JSON.stringify({
-    grant_type: 'refresh_token',
-    refresh_token: creds.refreshToken,
-    client_id: OAUTH_CLIENT_ID,
-  }));
-  const json = JSON.parse(res.body);
-  if (!json.access_token) throw new Error('Refresh failed');
-  const newCreds = {
-    accessToken: json.access_token,
-    refreshToken: json.refresh_token,
-    expiresAt: Date.now() + (json.expires_in || 3600) * 1000,
-  };
-  saveCredentials(newCreds);
-  return newCreds;
-}
-
-// ===== Fetch usage =====
+// ===== Fetch usage (READ-ONLY) =====
 async function fetchUsage() {
-  let creds = readCredentials();
+  const creds = readCredentials();
   if (!creds) return { error: 'NO_CREDENTIALS' };
 
-  async function doFetch(c) {
-    return httpsRequest(USAGE_URL, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${c.accessToken}`,
-        'anthropic-beta': 'oauth-2025-04-20',
-        Accept: 'application/json',
-      },
-    });
-  }
+  const res = await httpsRequest(USAGE_URL, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${creds.accessToken}`,
+      'anthropic-beta': 'oauth-2025-04-20',
+      Accept: 'application/json',
+    },
+  });
 
-  let res = await doFetch(creds);
-  if ([401, 403, 429].includes(res.status)) {
-    creds = await refreshToken(creds);
-    res = await doFetch(creds);
+  if (res.status === 401 || res.status === 403) {
+    return { error: 'TOKEN_EXPIRED' };
+  }
+  if (res.status === 429) {
+    return { error: 'RATE_LIMITED' };
   }
   if (res.status !== 200) return { error: `HTTP ${res.status}` };
 
