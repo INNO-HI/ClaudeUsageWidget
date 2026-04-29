@@ -23,6 +23,12 @@
 ## Features
 
 - **Real-time Monitoring** — 5-hour session usage & 7-day weekly limits
+- **Auto-Update via Sparkle** — One-click "Check for Updates" inside the app (macOS, signed/notarized)
+- **Launch at Login** — Optional auto-start when you log in to macOS
+- **Mini / Full Mode** — Show or hide the menu-bar % text with one toggle
+- **Usage Alerts** — Optional macOS notifications at 80% / 90% session usage
+- **Universal Binary** — Native on Apple Silicon and Intel Macs
+- **Rate-Limit Safe** — ±10% jitter between syncs and 2×→16× exponential backoff on 429
 - **Glassmorphism UI** — Frosted glass design with smooth animations
 - **Zero Token Cost** — Uses OAuth usage API only, no Claude messages sent
 - **Auto Sync** — Configurable intervals: 5m / 10m / 30m / 1h / manual
@@ -79,15 +85,20 @@ The widget integrates the official [Claude Code Buddy](https://docs.anthropic.co
 
 ### macOS (Native App)
 
-> Requires macOS 13.0+
+> Requires macOS 13.0+ · Apple Silicon & Intel (Universal Binary)
 
-**Download** from [Releases](https://github.com/INNO-HI/ClaudeUsageWidget/releases) or build from source:
+**Download** the latest signed & notarized DMG from [Releases](https://github.com/INNO-HI/ClaudeUsageWidget/releases), drag the app to `/Applications`, and launch.
+
+> ✅ Signed with `Developer ID Application: INNO-HI Inc.` and notarized by Apple.
+> Future updates ship via in-app **Settings → Check for Updates** (Sparkle).
+
+Or build from source (requires an Apple Developer account for full signing):
 
 ```bash
 git clone https://github.com/INNO-HI/ClaudeUsageWidget.git
 cd ClaudeUsageWidget
 bash build.sh
-open "build/Claude Widget.app"
+open "build/Claude Usage Widget.app"
 ```
 
 ### Windows / Linux (Cross-platform)
@@ -132,11 +143,64 @@ Credentials are read from `~/.claude/.credentials.json` (or macOS Keychain).
 
 ## Configuration
 
+All settings live behind the gear icon in the popover.
+
 | Setting | Options | Default |
 |---------|---------|---------|
 | Auto-sync | manual / 5m / 10m / 30m / 1h | 5m |
 | Language | English / 한국어 | English |
+| Launch at Login | on / off | off |
+| Show menu-bar % (mini/full mode) | on / off | on |
+| Usage Alerts (80% / 90%) | on / off | off |
+| Check for Updates | one-click | — |
 | Buddy | /buddy · /buddy pet · /buddy off | off |
+
+---
+
+## Troubleshooting
+
+### "Claude Monitor is damaged and can't be opened"
+This was caused by older unsigned builds. The current release is **signed (Developer ID) and notarized**, so you should not see this message. If you downloaded an older build, run:
+
+```bash
+xattr -cr "/Applications/Claude Usage Widget.app"
+```
+
+### Widget shows `--` or `Token expired`
+Your Claude Code OAuth token has expired. Run in Terminal:
+
+```bash
+claude login
+```
+
+Then click **Refresh** in the widget settings.
+
+### Launch at Login isn't sticking
+macOS may have queued a permission prompt under **System Settings → General → Login Items**. Enable the entry there, or toggle the option off/on inside the widget.
+
+### No notifications appearing
+First time you enable **Usage Alerts**, macOS asks for notification permission. If you missed it: **System Settings → Notifications → Claude Usage Widget → Allow Notifications**.
+
+### "Check for Updates" says nothing happens
+You're already on the latest version. Sparkle silently confirms when you're up to date.
+
+---
+
+## Change Log
+
+See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+
+### v1.1.0 (latest)
+- Added **Sparkle auto-update** (signed via EdDSA)
+- Added **Launch at Login** option
+- Added **Mini / Full mode** toggle (hide menu-bar %)
+- Added **Usage Alerts** (80% / 90% session thresholds)
+- Added **Universal Binary** (Intel + Apple Silicon)
+- Added **API rate-limit safety** — ±10% jitter and 2×→16× exponential backoff on 429
+- Build pipeline now produces signed & notarized DMG
+
+### v1.0.0
+- Initial public release with menu-bar widget, glassmorphism UI, OAuth-based usage monitoring
 
 ---
 
@@ -144,7 +208,7 @@ Credentials are read from `~/.claude/.credentials.json` (or macOS Keychain).
 
 | Platform | Stack |
 |----------|-------|
-| macOS (native) | Swift, SwiftUI, AppKit, Security (Keychain) |
+| macOS (native) | Swift, SwiftUI, AppKit, ServiceManagement, UserNotifications, Security (Keychain), [Sparkle 2.x](https://sparkle-project.org/) |
 | Cross-platform | Node.js, HTML/CSS/JS |
 
 ---

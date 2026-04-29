@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy — Claude Usage Widget</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; line-height: 1.6; }
+    h1 { color: #d97757; border-bottom: 2px solid #d97757; padding-bottom: 8px; }
+    h2 { margin-top: 32px; color: #333; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-size: 0.92em; }
+    .meta { color: #777; font-size: 0.9em; }
+    a { color: #d97757; }
+  </style>
+</head>
+<body>
+
+<h1>Privacy Policy</h1>
+<p class="meta">Effective date: 2026-04-29 · Last updated: 2026-04-29</p>
+
+<p>
+  <strong>Claude Usage Widget</strong> ("the App") is an open-source desktop widget published by INNO-HI Inc.
+  This policy explains what data the App accesses, where it goes, and what we do <em>not</em> do.
+</p>
+
+<h2>Data the App reads (locally only)</h2>
+<ul>
+  <li>
+    <strong>Claude Code OAuth credentials</strong> from <code>~/.claude/.credentials.json</code> (created by the official
+    <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code CLI</a>).
+    The App uses these to authenticate against Anthropic's usage API. They are never copied, transmitted to us,
+    or persisted anywhere outside the file Claude Code already maintains.
+  </li>
+  <li>
+    <strong>Local config</strong> at <code>~/.claude-monitor-config.json</code> — your sync interval, language preference,
+    and toggle states (Launch at Login, notifications, etc.). Stored on your Mac only.
+  </li>
+</ul>
+
+<h2>Network requests the App makes</h2>
+<ul>
+  <li>
+    <code>GET https://api.anthropic.com/api/oauth/usage</code> — fetches your usage percentages directly from Anthropic.
+    No request body is sent. <strong>Zero token cost.</strong>
+  </li>
+  <li>
+    <code>GET https://inno-hi.github.io/ClaudeUsageWidget/appcast.xml</code> — Sparkle update check.
+    Sends no personal data; only your standard HTTP user agent.
+  </li>
+</ul>
+
+<h2>What the App does NOT do</h2>
+<ul>
+  <li>It does <strong>not</strong> send messages to Claude or use any of your token quota.</li>
+  <li>It does <strong>not</strong> transmit your credentials, usage data, or any telemetry to INNO-HI or any third party.</li>
+  <li>It does <strong>not</strong> include analytics, ad SDKs, crash reporters, or fingerprinting libraries.</li>
+  <li>It does <strong>not</strong> request elevated privileges (no <code>sudo</code>, no system-level installation).</li>
+</ul>
+
+<h2>Auto-updates</h2>
+<p>
+  The App uses <a href="https://sparkle-project.org/">Sparkle 2.x</a> to check for and install updates.
+  All update binaries are cryptographically verified with EdDSA signatures bound to a public key embedded in the App,
+  and signed/notarized with our Apple Developer ID before distribution.
+</p>
+
+<h2>Open source</h2>
+<p>
+  The full source code is available at
+  <a href="https://github.com/INNO-HI/ClaudeUsageWidget">github.com/INNO-HI/ClaudeUsageWidget</a>
+  under the MIT License. You can audit every line yourself.
+</p>
+
+<h2>Contact</h2>
+<p>
+  Questions or concerns: <a href="mailto:board@innohi.ai.kr">board@innohi.ai.kr</a><br>
+  Security reports: see <a href="https://github.com/INNO-HI/ClaudeUsageWidget/blob/main/SECURITY.md">SECURITY.md</a>.
+</p>
+
+<p style="margin-top:48px; font-size:0.85em; color:#888;">
+  This policy applies only to the Claude Usage Widget. It does not cover Anthropic's services or the Claude Code CLI;
+  for those, see <a href="https://www.anthropic.com/privacy">Anthropic's privacy policy</a>.
+</p>
+
+</body>
+</html>

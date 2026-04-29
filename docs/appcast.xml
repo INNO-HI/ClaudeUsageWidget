@@ -7,6 +7,38 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.1.0</title>
+            <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+            <sparkle:version>2</sparkle:version>
+            <pubDate>Wed, 29 Apr 2026 16:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Major UI overhaul + Sparkle auto-update + Universal Binary</h2>
+                <ul>
+                    <li>Sparkle auto-update (signed via EdDSA)</li>
+                    <li>Launch at Login</li>
+                    <li>Usage Alerts at 80% / 90% session thresholds</li>
+                    <li>Universal Binary (Apple Silicon + Intel)</li>
+                    <li>Circular session ring with adaptive color coding</li>
+                    <li>Menu bar icon color follows current usage</li>
+                    <li>Settings reorganized into Account / General / Notifications / Updates</li>
+                    <li>Mini / Full mode toggle, Buddy show/hide, Compact mode</li>
+                    <li>Light & Dark mode adaptive theme</li>
+                    <li>First-run onboarding (auto-skipped for existing users)</li>
+                    <li>Open Terminal button when credentials missing</li>
+                    <li>Keyboard shortcuts: ⌘R refresh, ⌘, settings</li>
+                    <li>API jitter + 2×→16× exponential backoff for rate-limit safety</li>
+                    <li>Bundle ID unified to com.innohi.claudeusagewidget</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.1.0-macos/ClaudeUsageWidget.dmg"
+                length="1938142"
+                type="application/octet-stream"
+                sparkle:edSignature="JE9TzjdgqlUvGZwy4OUZOXTmduhW9l1WG+G3Q4xyG52kF1i4iiyMY29/luy2ubwkNwReBB7WuXeF5RvzZAoYBA==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.0.0</title>
             <sparkle:version>1</sparkle:version>
             <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
