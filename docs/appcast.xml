@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>Claude Usage Widget — macOS</title>
+        <description>Auto-update feed for the macOS native build.</description>
+        <language>en</language>
+        <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
+
+        <item>
+            <title>Version 1.0.0</title>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <pubDate>Wed, 29 Apr 2026 14:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Initial Sparkle release</h2>
+                <ul>
+                    <li>Auto-update via Sparkle (this release)</li>
+                    <li>Launch at Login support</li>
+                    <li>Mini/Full mode toggle (hide menu-bar % text)</li>
+                    <li>API jitter + exponential backoff for rate-limit safety</li>
+                    <li>Notarized Developer ID build</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.0.0-macos/ClaudeMonitor.dmg"
+                length="1564923"
+                type="application/octet-stream"
+                sparkle:edSignature="VMk9XtAU2abUP5LMU9bWHFBHUEoMGuKcPxNwE8KKGUPB41Ice8ANfXq5qVf5LNJOETZh1uD01Cq0s9nXGmPaDg==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+    </channel>
+</rss>
