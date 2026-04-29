@@ -716,7 +716,7 @@
           </svg>
           <div>
             <div style="display:flex;align-items:center;gap:8px">
-              <span class="preview-title">Claude Monitor</span>
+              <span class="preview-title">Claude Usage Widget</span>
               <span class="preview-badge">Max</span>
             </div>
             <div class="preview-status">&#10003; Connected via OAuth</div>
@@ -859,15 +859,15 @@
           </svg>
         </div>
         <h3>macOS</h3>
-        <p class="platform-sub" data-i18n="download.mac.sub">Native Swift app + Web widget</p>
+        <p class="platform-sub" data-i18n="download.mac.sub">Native Swift app · Universal · Notarized</p>
         <div class="requirements" data-i18n-html="download.mac.req">
-          macOS 13.0+<br>
-          Native <code>.app</code> bundle (menu bar)<br>
-          + Standalone <code>.app</code> (desktop widget)
+          macOS 13.0+ · Apple Silicon &amp; Intel<br>
+          Signed &amp; notarized <code>.dmg</code><br>
+          In-app auto-update via Sparkle
         </div>
-        <a href="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.6.0/Claude-Widget-macOS.zip" download="Claude-Widget-macOS.zip" class="download-btn mac">
+        <a href="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.1.0-macos/ClaudeUsageWidget.dmg" download="ClaudeUsageWidget.dmg" class="download-btn mac">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-          <span data-i18n="download.mac.btn">Download for Mac</span>
+          <span data-i18n="download.mac.btn">Download for Mac (v1.1.0)</span>
         </a>
         <span class="or-text" data-i18n-html="download.mac.or">or build from source: <code>bash build.sh</code></span>
       </div>
@@ -903,6 +903,26 @@
         <span class="feature-emoji">&#128203;</span>
         <h3 data-i18n="features.realtime.title">Real-time Usage</h3>
         <p data-i18n="features.realtime.desc">Monitor your 5-hour session and 7-day weekly limits at a glance.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#128259;</span>
+        <h3 data-i18n="features.autoupdate.title">Auto-Update</h3>
+        <p data-i18n="features.autoupdate.desc">Sparkle-powered, EdDSA-signed updates delivered straight inside the app.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#128187;</span>
+        <h3 data-i18n="features.universal.title">Universal Binary</h3>
+        <p data-i18n="features.universal.desc">Runs natively on both Apple Silicon and Intel Macs.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#128276;</span>
+        <h3 data-i18n="features.alerts.title">Usage Alerts</h3>
+        <p data-i18n="features.alerts.desc">Optional macOS notifications when you reach 80% or 90% of your session.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#127769;</span>
+        <h3 data-i18n="features.darkmode.title">Light &amp; Dark</h3>
+        <p data-i18n="features.darkmode.desc">Adaptive theme that follows your system appearance, with high-contrast text on glass.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#127912;</span>
@@ -971,13 +991,21 @@
         'buddy.shiny.desc': 'Every buddy has a 1% chance of being shiny -- a special variant with unique ASCII art and bonus stats. Can you find one?',
         'download.title': 'Download',
         'download.subtitle': 'Choose your platform',
-        'download.mac.sub': 'Native Swift app + Web widget',
-        'download.mac.btn': 'Download for Mac',
+        'download.mac.sub': 'Native Swift app · Universal · Notarized',
+        'download.mac.btn': 'Download for Mac (v1.1.0)',
         'download.win.sub': 'Cross-platform web widget',
         'download.win.btn': 'Download for Windows',
         'features.title': 'Features',
         'features.realtime.title': 'Real-time Usage',
         'features.realtime.desc': 'Monitor your 5-hour session and 7-day weekly limits at a glance.',
+        'features.autoupdate.title': 'Auto-Update',
+        'features.autoupdate.desc': 'Sparkle-powered, EdDSA-signed updates delivered straight inside the app.',
+        'features.universal.title': 'Universal Binary',
+        'features.universal.desc': 'Runs natively on both Apple Silicon and Intel Macs.',
+        'features.alerts.title': 'Usage Alerts',
+        'features.alerts.desc': 'Optional macOS notifications when you reach 80% or 90% of your session.',
+        'features.darkmode.title': 'Light & Dark',
+        'features.darkmode.desc': 'Adaptive theme that follows your system appearance, with high-contrast text on glass.',
         'features.glass.title': 'Glassmorphism UI',
         'features.glass.desc': 'Beautiful frosted glass design with smooth animations and hover effects.',
         'features.zero.title': 'Zero Token Cost',
@@ -1013,13 +1041,21 @@
         'buddy.shiny.desc': '모든 버디에게는 1% 확률로 샤이니가 등장합니다. 특별한 ASCII 아트와 보너스 스탯을 가진 희귀 변종이에요!',
         'download.title': '다운로드',
         'download.subtitle': '플랫폼을 선택하세요',
-        'download.mac.sub': '네이티브 Swift 앱 + 웹 위젯',
-        'download.mac.btn': 'Mac용 다운로드',
+        'download.mac.sub': '네이티브 Swift 앱 · 유니버설 · 공증 완료',
+        'download.mac.btn': 'Mac용 다운로드 (v1.1.0)',
         'download.win.sub': '크로스 플랫폼 웹 위젯',
         'download.win.btn': 'Windows용 다운로드',
         'features.title': '기능',
         'features.realtime.title': '실시간 사용량',
         'features.realtime.desc': '5시간 세션과 7일 주간 한도를 한눈에 모니터링하세요.',
+        'features.autoupdate.title': '자동 업데이트',
+        'features.autoupdate.desc': 'Sparkle 기반 EdDSA 서명 업데이트를 앱 안에서 바로 받습니다.',
+        'features.universal.title': '유니버설 바이너리',
+        'features.universal.desc': 'Apple Silicon과 Intel Mac 모두에서 네이티브 실행됩니다.',
+        'features.alerts.title': '사용량 알림',
+        'features.alerts.desc': '세션의 80% / 90% 도달 시 macOS 알림을 받을 수 있습니다.',
+        'features.darkmode.title': '라이트 & 다크',
+        'features.darkmode.desc': '시스템 모양 변경에 따라 자동 적응. 글래스 위에서도 텍스트 가독성을 유지합니다.',
         'features.glass.title': '글래스모피즘 UI',
         'features.glass.desc': '부드러운 애니메이션과 호버 효과를 갖춘 아름다운 프로스트 글래스 디자인.',
         'features.zero.title': '토큰 비용 제로',
@@ -1037,14 +1073,14 @@
 
     const i18nHtml = {
       en: {
-        'download.mac.req': 'macOS 13.0+<br>Native <code>.app</code> bundle (menu bar)<br>+ Standalone <code>.app</code> (desktop widget)',
+        'download.mac.req': 'macOS 13.0+ · Apple Silicon &amp; Intel<br>Signed &amp; notarized <code>.dmg</code><br>In-app auto-update via Sparkle',
         'download.mac.or': 'or build from source: <code>bash build.sh</code>',
         'download.win.req': 'Windows 10/11<br>Requires <code>Node.js</code> 18+<br>Runs in your default browser',
         'download.win.or': 'or run directly: <code>node src/server.js</code>',
         'footer.text': 'Built with &#9825; for Claude Code users &middot; <a href="https://github.com/INNO-HI/ClaudeUsageWidget">GitHub</a> &middot; <a href="https://github.com/INNO-HI/ClaudeUsageWidget/issues">Report Issue</a>',
       },
       ko: {
-        'download.mac.req': 'macOS 13.0+<br>네이티브 <code>.app</code> 번들 (메뉴 바)<br>+ 독립형 <code>.app</code> (데스크톱 위젯)',
+        'download.mac.req': 'macOS 13.0+ · Apple Silicon &amp; Intel<br>서명 &amp; 공증된 <code>.dmg</code><br>Sparkle 인앱 자동 업데이트',
         'download.mac.or': '또는 소스에서 빌드: <code>bash build.sh</code>',
         'download.win.req': 'Windows 10/11<br><code>Node.js</code> 18+ 필요<br>기본 브라우저에서 실행',
         'download.win.or': '또는 직접 실행: <code>node src/server.js</code>',
