@@ -15,9 +15,14 @@ package-lock.json
 # Build artifacts
 build/
 dist/
-*.app
 *.dmg
 *.zip
+
+# macOS native — local-only build artefacts & oversized Sparkle extras
+macos/build/
+macos/vendor/Symbols/
+macos/vendor/Sparkle Test App.app/
+macos/vendor/Sparkle.tar.xz
 
 # OS
 .DS_Store

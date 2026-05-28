@@ -96,10 +96,12 @@ Or build from source (requires an Apple Developer account for full signing):
 
 ```bash
 git clone https://github.com/INNO-HI/ClaudeUsageWidget.git
-cd ClaudeUsageWidget
+cd ClaudeUsageWidget/macos
 bash build.sh
 open "build/Claude Usage Widget.app"
 ```
+
+> The macOS Swift source lives under [`macos/`](macos/). Sparkle 2.x is vendored at `macos/vendor/Sparkle.framework`.
 
 ### Windows / Linux (Cross-platform)
 
