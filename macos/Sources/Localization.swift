@@ -39,7 +39,10 @@ struct L {
     static var step3Refresh: String { lang == .ko ? "3. 위의 새로고침 클릭" : "3. Click Refresh above" }
     static var keepOnTop: String { lang == .ko ? "항상 위에 표시" : "Keep on Top" }
     static var launchAtLogin: String { lang == .ko ? "로그인 시 자동 시작" : "Launch at Login" }
-    static var showMenuBarText: String { lang == .ko ? "메뉴바에 % 표시" : "Show % in menu bar" }
+    static var menuBarFormat: String { lang == .ko ? "메뉴바 표시" : "Menu bar text" }
+    static var sevenDayTrend: String { lang == .ko ? "최근 7일 흐름" : "7-day trend" }
+    static var loadingData: String { lang == .ko ? "데이터 불러오는 중..." : "Loading data..." }
+    static var noTrendYet: String { lang == .ko ? "데이터가 더 쌓이면 트렌드가 표시됩니다" : "Trend will appear as data accumulates" }
     static var checkForUpdates: String { lang == .ko ? "업데이트 확인" : "Check for Updates" }
     static var openTerminal: String { lang == .ko ? "터미널 열기" : "Open Terminal" }
     static var sectionGeneral: String { lang == .ko ? "일반" : "General" }

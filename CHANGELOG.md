@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] — 2026-05-28
+
+### Added
+- **Burn-rate ETA** — predicts when the session limit will be hit at current pace, shown in the session card
+- **7-day sparkline** — usage trend strip in the Weekly Limits card; history persisted to `~/.claude-usage-widget-history.json`
+- **Menu bar text format** — choose between Off / `%` / Time / Both via segmented picker
+- **Warning pulse** — menu bar icon breathes when session ≥ 80%; session ring gets a soft glow halo
+- **Skeleton loading** — indeterminate rotating arc + `--` while the first sync is in flight
+- **Spring-animated ring** — percent changes now ease in with a SwiftUI spring; numeric label uses `contentTransition(.numericText())`
+- **Refreshed Onboarding** — animated ring hero, gradient CTA with arrow, centered layout
+- **Category icons in Settings** — Account / General / Notifications / Updates each carry an SF Symbol header
+
+### Changed
+- Default progress arc animation upgraded from `easeOut` to spring
+- Settings rows now expose proper `accessibilityLabel`s; category headers tagged as `.isHeader`
+- `⌘Q` quits the app from anywhere inside the popover
+
+### Fixed
+- Footer build label corrected (`v1.3.0` → `v1.2.0`)
+- Deprecated `NSWorkspace.launchApplication` replaced with `openApplication(at:configuration:)`
+- All animations honour the system **Reduce Motion** preference (ring pulse, menu bar breathing, bounce, onboarding hero)
+
+---
+
 ## [1.1.0] — 2026-04-29
 
 ### Added

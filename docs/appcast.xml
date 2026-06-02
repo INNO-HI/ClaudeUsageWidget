@@ -7,6 +7,35 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.2.0</title>
+            <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
+            <sparkle:version>3</sparkle:version>
+            <pubDate>Tue, 02 Jun 2026 16:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>UX upgrade — ETA, sparkline, A2Z typography, and a roomier layout</h2>
+                <ul>
+                    <li>Burn-rate ETA — predicts when the session limit will be hit at current pace</li>
+                    <li>7-day Sparkline trend in the Weekly Limits card (history saved to ~/.claude-usage-widget-history.json)</li>
+                    <li>Menu Bar Text format picker — Off / % / Time / Both</li>
+                    <li>Warning pulse — menu bar icon breathes at ≥80%, session ring gets a soft glow halo</li>
+                    <li>Skeleton loading + spring-animated session ring with numericText transition</li>
+                    <li>Refreshed onboarding — animated ring hero and gradient CTA</li>
+                    <li>에이투지체 (A2Z) typography across the popover, wider 400 px layout, larger ring & progress bars</li>
+                    <li>Popover background switched from glassmorphism blur to solid off-white / dark surface</li>
+                    <li>Settings switches with Claude-orange tint, category icons (SF Symbols)</li>
+                    <li>Accessibility labels, ⌘Q quit shortcut, system Reduce Motion honoured</li>
+                    <li>Fixed deprecated NSWorkspace.launchApplication and stale footer version label</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.2.0-macos/ClaudeUsageWidget.dmg"
+                length="2092447"
+                type="application/octet-stream"
+                sparkle:edSignature="d6aRKWnJ23l9MHq6wlZ3pRY3QJ3QExWKPYcHRhIEc0p51l7evA6BMqU/rkOI77WvS+POx8Bp0aOZe6WhXPC0DA==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.1.0</title>
             <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
             <sparkle:version>2</sparkle:version>

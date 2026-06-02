@@ -13,6 +13,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables = Set<AnyCancellable>()
     private var bounceTimer: Timer?
     private var bouncePhase: CGFloat = 0
+    private var pulseTimer: Timer?
+    private var pulsePhase: CGFloat = 0
 
     // Sparkle auto-updater (starts checking on launch per Info.plist settings)
     let updaterController: SPUStandardUpdaterController
@@ -60,8 +62,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 .store(in: &cancellables)
 
-            // Mini/Full mode toggle — repaint the menu bar when user flips % visibility
-            viewModel.$showMenuBarText
+            // Repaint the menu bar when the user changes the display format
+            viewModel.$menuBarFormat
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     if let btn = self?.statusItem.button {
@@ -77,7 +79,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Create popover with transparent background for glassmorphism
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 360, height: 500)
+        popover.contentSize = NSSize(width: 400, height: 540)
         popover.behavior = .transient
         popover.animates = true
 
@@ -109,12 +111,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let text = viewModel.menuBarText
         button.title = text.isEmpty ? "" : " \(text)"
         button.imagePosition = .imageLeading
+
+        // Manage warning pulse based on threshold
+        let shouldPulse = !syncing && viewModel.usage.isConnected && viewModel.usage.sessionUsagePercent >= 80
+        if shouldPulse {
+            startPulseAnimation()
+        } else {
+            stopPulseAnimation()
+        }
     }
 
     // MARK: - Bounce Animation
 
     private func startBounceAnimation() {
         guard bounceTimer == nil else { return }
+        // Respect Reduce Motion system setting
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return }
         bouncePhase = 0
         bounceTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
             guard let self = self, let button = self.statusItem.button else { return }
@@ -130,6 +142,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button {
             button.frame.origin.y = 0
         }
+    }
+
+    // MARK: - Warning Pulse (>=80%)
+
+    private func startPulseAnimation() {
+        guard pulseTimer == nil else { return }
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return }
+        pulsePhase = 0
+        pulseTimer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { [weak self] _ in
+            guard let self = self, let button = self.statusItem.button else { return }
+            self.pulsePhase += 0.18
+            // Breathing alpha 0.55..1.0
+            let alpha = 0.55 + (sin(self.pulsePhase) + 1) / 2 * 0.45
+            button.alphaValue = alpha
+        }
+    }
+
+    private func stopPulseAnimation() {
+        pulseTimer?.invalidate()
+        pulseTimer = nil
+        statusItem.button?.alphaValue = 1.0
     }
 
     @objc func togglePopover() {

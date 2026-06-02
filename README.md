@@ -22,16 +22,20 @@
 
 ## Features
 
-- **Real-time Monitoring** — 5-hour session usage & 7-day weekly limits
+- **Real-time Monitoring** — 5-hour session usage & 7-day weekly limits with spring-animated session ring
+- **Burn-rate ETA** — Predicts when you'll hit the session limit at current pace
+- **7-day Sparkline** — Usage trend strip in the Weekly Limits card
+- **Menu Bar Format** — Off / `%` / Time / Both (segmented picker)
 - **Auto-Update via Sparkle** — One-click "Check for Updates" inside the app (macOS, signed/notarized)
 - **Launch at Login** — Optional auto-start when you log in to macOS
-- **Mini / Full Mode** — Show or hide the menu-bar % text with one toggle
-- **Usage Alerts** — Optional macOS notifications at 80% / 90% session usage
+- **Usage Alerts** — Optional macOS notifications at 80% / 90% session usage + pulsing menu bar icon
 - **Universal Binary** — Native on Apple Silicon and Intel Macs
 - **Rate-Limit Safe** — ±10% jitter between syncs and 2×→16× exponential backoff on 429
-- **Glassmorphism UI** — Frosted glass design with smooth animations
+- **Adaptive Light/Dark Theme** — Off-white surface in light mode, dark surface in dark mode
+- **에이투지체 (A2Z)** Typography — Clean Korean-optimized font on the popover
+- **Accessibility** — VoiceOver labels, ⌘R refresh, ⌘Q quit, ⌘, settings, system **Reduce Motion** honoured
 - **Zero Token Cost** — Uses OAuth usage API only, no Claude messages sent
-- **Auto Sync** — Configurable intervals: 5m / 10m / 30m / 1h / manual
+- **Auto Sync** — Configurable intervals: 1m / 5m / 10m / 30m / 1h / manual
 - **Claude Code Buddy** — Official terminal pet system integrated (18 species, 5 rarity tiers, ASCII art)
 - **Cross Platform** — Native Swift on macOS, Node.js web widget on Windows & Linux
 - **Bilingual** — English / 한국어
@@ -149,24 +153,32 @@ All settings live behind the gear icon in the popover.
 
 | Setting | Options | Default |
 |---------|---------|---------|
-| Auto-sync | manual / 5m / 10m / 30m / 1h | 5m |
+| Auto-sync | manual / 1m / 5m / 10m / 30m / 1h | 5m |
 | Language | English / 한국어 | English |
 | Launch at Login | on / off | off |
-| Show menu-bar % (mini/full mode) | on / off | on |
+| Menu Bar Text | Off / % / Time / Both | % |
 | Usage Alerts (80% / 90%) | on / off | off |
+| Compact mode | on / off | off |
 | Check for Updates | one-click | — |
-| Buddy | /buddy · /buddy pet · /buddy off | off |
+| Buddy | /buddy · /buddy pet · /buddy feed · /buddy off | off |
 
 ---
 
 ## Troubleshooting
 
-### "Claude Monitor is damaged and can't be opened"
-This was caused by older unsigned builds. The current release is **signed (Developer ID) and notarized**, so you should not see this message. If you downloaded an older build, run:
+### "Claude Widget is damaged and can't be opened. You should move it to the Trash."
+This is macOS Gatekeeper rejecting a quarantined file whose Developer ID signature didn't survive the download (a known issue with some browsers and older builds — see [#1](https://github.com/INNO-HI/ClaudeUsageWidget/issues/1)). The current release is **signed (Developer ID) and notarized**, but if you still hit the message:
 
-```bash
-xattr -cr "/Applications/Claude Usage Widget.app"
-```
+1. Move the app to `/Applications` first (don't open from the DMG).
+2. Strip the quarantine attribute:
+
+   ```bash
+   xattr -dr com.apple.quarantine "/Applications/Claude Usage Widget.app"
+   ```
+
+3. Re-launch — you may be asked once for permission, then it stays approved.
+
+If that still fails, the download was likely corrupted — re-download from [Releases](https://github.com/INNO-HI/ClaudeUsageWidget/releases) and verify the DMG size matches the release listing.
 
 ### Widget shows `--` or `Token expired`
 Your Claude Code OAuth token has expired. Run in Terminal:
@@ -192,7 +204,19 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.1.0 (latest)
+### v1.2.0 (latest)
+- Added **Burn-rate ETA** — predicts when the session limit will be hit
+- Added **7-day Sparkline** trend in the Weekly Limits card
+- Added **Menu Bar Text format** — Off / `%` / Time / Both
+- Added **Warning pulse** — menu bar icon breathes at ≥80%, session ring gets a soft glow halo
+- Added **Skeleton loading** + spring-animated session ring
+- Refreshed **Onboarding** with animated ring hero and gradient CTA
+- New **에이투지체 (A2Z) typography** across the popover, wider 400 px layout, larger ring & progress bars
+- Switched popover background from glassmorphism blur to solid off-white / dark surface
+- Added **accessibility labels**, `⌘Q` quit shortcut, system **Reduce Motion** support
+- Fixed deprecated `NSWorkspace.launchApplication` and stale footer version label
+
+### v1.1.0
 - Added **Sparkle auto-update** (signed via EdDSA)
 - Added **Launch at Login** option
 - Added **Mini / Full mode** toggle (hide menu-bar %)

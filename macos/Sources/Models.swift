@@ -16,6 +16,40 @@ struct UsageData {
     var planName: String = "Max"
 }
 
+// MARK: - Menu Bar Format
+
+enum MenuBarFormat: String, CaseIterable {
+    case hidden    // icon only
+    case percent   // "47%"
+    case time      // "2h 13m"
+    case both      // "47% · 2h"
+
+    var displayName: String {
+        if L.lang == .ko {
+            switch self {
+            case .hidden:  return "숨김"
+            case .percent: return "%"
+            case .time:    return "시간"
+            case .both:    return "%·시간"
+            }
+        }
+        switch self {
+        case .hidden:  return "Off"
+        case .percent: return "%"
+        case .time:    return "Time"
+        case .both:    return "Both"
+        }
+    }
+}
+
+// MARK: - Usage History Point
+
+struct UsageHistoryPoint: Codable {
+    let timestamp: Date
+    let sessionPercent: Double
+    let weeklyAllModelsPercent: Double
+}
+
 // MARK: - Sync Interval
 
 enum SyncInterval: String, CaseIterable {
@@ -361,6 +395,13 @@ class UsageViewModel: ObservableObject {
     @Published var showMenuBarText: Bool = true {
         didSet { saveConfig() }
     }
+    @Published var menuBarFormat: MenuBarFormat = .percent {
+        didSet {
+            showMenuBarText = (menuBarFormat != .hidden)
+            saveConfig()
+        }
+    }
+    @Published var usageHistory: [UsageHistoryPoint] = []
     @Published var notificationsEnabled: Bool = false {
         didSet {
             if notificationsEnabled { requestNotificationAuthorization() }
@@ -410,6 +451,7 @@ class UsageViewModel: ObservableObject {
 
     init() {
         loadConfig()
+        loadHistory()
         L.lang = language
         checkCredentials()
         // Delay timer setup to ensure we're on main RunLoop
@@ -455,6 +497,7 @@ class UsageViewModel: ObservableObject {
                     self.credentialStatus = .found
                     self.errorMessage = nil
                     self.consecutiveFailures = 0
+                    self.recordHistoryPoint()
                     self.evaluateUsageAlerts()
                 case .failure(let error):
                     self.errorMessage = error.localizedDescription
@@ -615,11 +658,97 @@ class UsageViewModel: ObservableObject {
     }
 
     var menuBarText: String {
-        guard showMenuBarText else { return "" }
-        if !usage.isConnected {
-            return "--"
+        if menuBarFormat == .hidden { return "" }
+        if !usage.isConnected { return "--" }
+
+        let pct = Int(usage.sessionUsagePercent)
+        let hours = usage.sessionResetSeconds / 3600
+        let minutes = (usage.sessionResetSeconds % 3600) / 60
+        let timeStr: String = {
+            if hours > 0 { return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h" }
+            return "\(minutes)m"
+        }()
+
+        switch menuBarFormat {
+        case .hidden:  return ""
+        case .percent: return "\(pct)%"
+        case .time:    return timeStr
+        case .both:    return "\(pct)% · \(timeStr)"
         }
-        return "\(Int(usage.sessionUsagePercent))%"
+    }
+
+    /// Estimated time until session limit is reached at current burn rate.
+    /// Returns nil if rate is unknown, too low to predict, or limit already reached.
+    var estimatedTimeToLimit: TimeInterval? {
+        // Need at least 2 history points in current session window
+        let now = Date()
+        let sessionStart = now.addingTimeInterval(-Double(18000 - usage.sessionResetSeconds))
+        let recent = usageHistory.filter { $0.timestamp >= sessionStart && $0.sessionPercent > 0 }
+        guard recent.count >= 2,
+              let first = recent.first,
+              let last = recent.last,
+              last.timestamp.timeIntervalSince(first.timestamp) >= 300 // need >5min of data
+        else { return nil }
+
+        let deltaPct = last.sessionPercent - first.sessionPercent
+        let deltaSec = last.timestamp.timeIntervalSince(first.timestamp)
+
+        guard deltaPct > 0.1, deltaSec > 0 else { return nil }
+        let burnRatePerSec = deltaPct / deltaSec   // percent per second
+        let remaining = max(0, 100 - usage.sessionUsagePercent)
+        guard burnRatePerSec > 0 else { return nil }
+        let etaSeconds = remaining / burnRatePerSec
+        // Cap at session reset; if eta > reset, no risk
+        if etaSeconds > Double(usage.sessionResetSeconds) { return nil }
+        return etaSeconds
+    }
+
+    var etaText: String? {
+        guard let eta = estimatedTimeToLimit else { return nil }
+        let h = Int(eta) / 3600
+        let m = (Int(eta) % 3600) / 60
+        if L.lang == .ko {
+            if h > 0 { return "이 속도면 \(h)시간 \(m)분 후 한도 도달" }
+            return "이 속도면 \(m)분 후 한도 도달"
+        } else {
+            if h > 0 { return "At this rate: limit in \(h)h \(m)m" }
+            return "At this rate: limit in \(m)m"
+        }
+    }
+
+    /// Record a usage data point; trim history to last 7 days.
+    private func recordHistoryPoint() {
+        let point = UsageHistoryPoint(
+            timestamp: Date(),
+            sessionPercent: usage.sessionUsagePercent,
+            weeklyAllModelsPercent: usage.weeklyAllModelsPercent
+        )
+        usageHistory.append(point)
+        let cutoff = Date().addingTimeInterval(-7 * 86400)
+        usageHistory.removeAll { $0.timestamp < cutoff }
+        saveHistory()
+    }
+
+    private var historyPath: String {
+        NSHomeDirectory() + "/.claude-usage-widget-history.json"
+    }
+
+    private func saveHistory() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        if let data = try? encoder.encode(usageHistory) {
+            try? data.write(to: URL(fileURLWithPath: historyPath))
+        }
+    }
+
+    private func loadHistory() {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: historyPath)) else { return }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        if let points = try? decoder.decode([UsageHistoryPoint].self, from: data) {
+            let cutoff = Date().addingTimeInterval(-7 * 86400)
+            usageHistory = points.filter { $0.timestamp >= cutoff }
+        }
     }
 
     // MARK: - Buddy Actions
@@ -766,6 +895,13 @@ class UsageViewModel: ObservableObject {
         if let showText = config["showMenuBarText"] as? Bool {
             showMenuBarText = showText
         }
+        if let fmt = config["menuBarFormat"] as? String,
+           let format = MenuBarFormat(rawValue: fmt) {
+            menuBarFormat = format
+        } else {
+            // Legacy fallback: derive from showMenuBarText
+            menuBarFormat = showMenuBarText ? .percent : .hidden
+        }
         if let launch = config["launchAtLogin"] as? Bool {
             // Set without triggering register() during load — let refreshLaunchAtLoginStatus reconcile.
             launchAtLogin = launch
@@ -817,6 +953,7 @@ class UsageViewModel: ObservableObject {
             "syncInterval": syncInterval.rawValue,
             "keepOnTop": keepOnTop,
             "showMenuBarText": showMenuBarText,
+            "menuBarFormat": menuBarFormat.rawValue,
             "launchAtLogin": launchAtLogin,
             "notificationsEnabled": notificationsEnabled,
             "showBuddy": showBuddy,

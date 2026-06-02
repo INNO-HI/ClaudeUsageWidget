@@ -1,12 +1,30 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Color Theme (Glassmorphism, Light + Dark adaptive)
+// MARK: - Typography (에이투지체 / A2Z)
+
+enum AppFont {
+    static func thin(_ size: CGFloat) -> Font      { Font.custom("A2Z 1 Thin", size: size) }
+    static func light(_ size: CGFloat) -> Font     { Font.custom("A2Z 3 Light", size: size) }
+    static func regular(_ size: CGFloat) -> Font   { Font.custom("A2Z 4 Regular", size: size) }
+    static func medium(_ size: CGFloat) -> Font    { Font.custom("A2Z 5 Medium", size: size) }
+    static func semibold(_ size: CGFloat) -> Font  { Font.custom("A2Z 6 SemiBold", size: size) }
+    static func bold(_ size: CGFloat) -> Font      { Font.custom("A2Z 7 Bold", size: size) }
+    static func extraBold(_ size: CGFloat) -> Font { Font.custom("A2Z 8 ExtraBold", size: size) }
+    static func black(_ size: CGFloat) -> Font     { Font.custom("A2Z 9 Black", size: size) }
+
+    static func mono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        Font.system(size: size, weight: weight, design: .monospaced)
+    }
+}
+
+// MARK: - Color Theme (Light + Dark adaptive)
 
 struct Theme {
     // Base — adapt to system appearance
     static let background = Color.dynamic(light: 0xFFFFFF, dark: 0x1C1C1E)
-    static let surface = Color.dynamic(light: 0xF8FAFC, dark: 0x2C2C2E)
+    // Card surface — sits on popoverBg (#FAFAFA / #1C1C1E)
+    static let surface = Color.dynamic(light: 0xFFFFFF, dark: 0x2C2C2E)
 
     // Text
     static let textPrimary = Color.dynamic(light: 0x1F2937, dark: 0xF2F2F7)
@@ -27,13 +45,13 @@ struct Theme {
     static let border = Color.dynamic(light: 0xE5E7EB, dark: 0x3A3A3C)
     static let cardBorder = Color.dynamic(light: 0xFFFFFF, dark: 0x48484A).opacity(0.6)
 
-    // Glassmorphism
+    // Glassmorphism (kept for cards; popover itself uses a solid background)
     static let glassBg = Color.dynamic(light: 0xFFFFFF, dark: 0x2C2C2E).opacity(0.7)
     static let glassBorder = Color.dynamic(light: 0xFFFFFF, dark: 0x48484A).opacity(0.5)
     static let glassShadow = Color.black.opacity(0.04)
 
-    // Background tint behind the popover blur
-    static let popoverTint = Color.dynamic(light: 0xFFFFFF, dark: 0x1C1C1E).opacity(0.55)
+    // Solid popover background — off-white in light mode, dark surface in dark mode
+    static let popoverBg = Color.dynamic(light: 0xFAFAFA, dark: 0x1C1C1E)
 }
 
 extension Color {
@@ -75,22 +93,17 @@ struct PopoverContentView: View {
                 mainContent
             }
         }
-        .frame(width: viewModel.compactMode ? 280 : 360)
-        .background(
-            ZStack {
-                VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
-                Theme.popoverTint
-            }
-        )
+        .frame(width: viewModel.compactMode ? 320 : 400)
+        .background(Theme.popoverBg)
     }
 
     private var mainContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             headerSection
-            Divider().background(Theme.border.opacity(0.5))
+            Divider().background(Theme.border.opacity(0.4))
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 18) {
                     if viewModel.showSettings {
                         settingsSection
                     }
@@ -103,10 +116,11 @@ struct PopoverContentView: View {
                         buddySection
                     }
                 }
-                .padding(viewModel.compactMode ? 12 : 16)
+                .padding(.horizontal, viewModel.compactMode ? 16 : 20)
+                .padding(.vertical, viewModel.compactMode ? 16 : 20)
             }
 
-            Divider().background(Theme.border.opacity(0.5))
+            Divider().background(Theme.border.opacity(0.4))
             footerSection
 
             // Hidden keyboard-shortcut buttons (⌘R refresh, ⌘, settings)
@@ -124,61 +138,61 @@ struct PopoverContentView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             ClaudeCodeIconView()
-                .frame(width: 26, height: 26)
+                .frame(width: 32, height: 32)
 
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
                     Text(L.appTitle)
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(AppFont.bold(15))
                         .foregroundColor(Theme.textPrimary)
 
                     Text(viewModel.usage.planName)
-                        .font(.system(size: 8, weight: .semibold, design: .rounded))
+                        .font(AppFont.semibold(9))
                         .foregroundColor(Theme.claudeOrange)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
                         .background(Theme.claudeOrange.opacity(0.1))
-                        .cornerRadius(3)
+                        .cornerRadius(4)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 3)
+                            RoundedRectangle(cornerRadius: 4)
                                 .stroke(Theme.claudeOrange.opacity(0.3), lineWidth: 1)
                         )
                 }
 
-                HStack(spacing: 3) {
+                HStack(spacing: 4) {
                     switch viewModel.credentialStatus {
                     case .checking:
                         Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 8))
+                            .font(.system(size: 9))
                             .foregroundColor(Theme.textSecondary)
                         Text(L.checkingCredentials)
-                            .font(.system(size: 9, design: .rounded))
+                            .font(AppFont.regular(10))
                             .foregroundColor(Theme.textSecondary)
                     case .found:
                         if let error = viewModel.errorMessage {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 8))
+                                .font(.system(size: 9))
                                 .foregroundColor(Theme.danger)
                             Text(error)
-                                .font(.system(size: 9, design: .rounded))
+                                .font(AppFont.regular(10))
                                 .foregroundColor(Theme.danger)
                                 .lineLimit(1)
                         } else if viewModel.usage.isConnected {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 8))
+                                .font(.system(size: 9))
                                 .foregroundColor(Theme.success)
                             Text(L.connectedOAuth)
-                                .font(.system(size: 9, design: .rounded))
+                                .font(AppFont.regular(10))
                                 .foregroundColor(Theme.success)
                         }
                     case .notFound:
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 8))
+                            .font(.system(size: 9))
                             .foregroundColor(Theme.danger)
                         Text(L.notLoggedIn)
-                            .font(.system(size: 9, design: .rounded))
+                            .font(AppFont.regular(10))
                             .foregroundColor(Theme.danger)
                     }
                 }
@@ -188,14 +202,23 @@ struct PopoverContentView: View {
 
             Button(action: { viewModel.showSettings.toggle() }) {
                 Image(systemName: viewModel.showSettings ? "gearshape.fill" : "gearshape")
-                    .font(.system(size: 13))
+                    .font(.system(size: 16))
                     .foregroundColor(viewModel.showSettings ? Theme.claudeOrange : Theme.textSecondary)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        viewModel.showSettings
+                            ? Theme.claudeOrange.opacity(0.1)
+                            : Color.clear
+                    )
+                    .cornerRadius(8)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help(L.settings)
+            .accessibilityLabel(L.settings)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
     }
 
     // MARK: - Settings
@@ -204,14 +227,14 @@ struct PopoverContentView: View {
         VStack(alignment: .leading, spacing: 14) {
 
             // ── Account ──────────────────────────────
-            categoryHeader(L.sectionAccount)
+            categoryHeader(L.sectionAccount, icon: "person.crop.circle")
 
             languageRow
 
             credentialsRow
 
             // ── General ──────────────────────────────
-            categoryHeader(L.sectionGeneral)
+            categoryHeader(L.sectionGeneral, icon: "slider.horizontal.3")
 
             settingsToggleRow(label: L.keepOnTop, isOn: $viewModel.keepOnTop) {
                 viewModel.saveConfig()
@@ -219,19 +242,19 @@ struct PopoverContentView: View {
 
             settingsToggleRow(label: L.launchAtLogin, isOn: $viewModel.launchAtLogin)
 
-            settingsToggleRow(label: L.showMenuBarText, isOn: $viewModel.showMenuBarText)
+            menuBarFormatRow
 
             settingsToggleRow(label: L.showBuddy, isOn: $viewModel.showBuddy)
 
             settingsToggleRow(label: L.compactMode, isOn: $viewModel.compactMode)
 
             // ── Notifications ────────────────────────
-            categoryHeader(L.sectionNotifications)
+            categoryHeader(L.sectionNotifications, icon: "bell.fill")
 
             settingsToggleRow(label: L.enableNotifications, isOn: $viewModel.notificationsEnabled)
 
             // ── Updates ──────────────────────────────
-            categoryHeader(L.sectionUpdates)
+            categoryHeader(L.sectionUpdates, icon: "arrow.triangle.2.circlepath")
 
             HStack {
                 pillButton(icon: "arrow.down.circle", title: L.checkForUpdates) {
@@ -248,21 +271,33 @@ struct PopoverContentView: View {
 
     // MARK: Settings — small reusable pieces
 
-    private func categoryHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.system(size: 9, weight: .bold, design: .rounded))
-            .foregroundColor(Theme.textSecondary.opacity(0.85))
-            .textCase(.uppercase)
-            .tracking(0.8)
-            .padding(.top, 4)
+    private func categoryHeader(_ title: String, icon: String? = nil) -> some View {
+        HStack(spacing: 5) {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(Theme.claudeOrange.opacity(0.85))
+            }
+            Text(title)
+                .font(AppFont.bold(9))
+                .foregroundColor(Theme.textSecondary.opacity(0.85))
+                .textCase(.uppercase)
+                .tracking(0.8)
+            Spacer()
+        }
+        .padding(.top, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 
     private func settingsToggleRow(label: String, isOn: Binding<Bool>, onChange: (() -> Void)? = nil) -> some View {
         HStack {
             Toggle(label, isOn: isOn)
-                .toggleStyle(.checkbox)
-                .font(.system(size: 11, design: .rounded))
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .font(AppFont.regular(12))
                 .foregroundColor(Theme.textPrimary)
+                .tint(Theme.claudeOrange)
                 .onChange(of: isOn.wrappedValue) { _ in onChange?() }
             Spacer()
         }
@@ -270,9 +305,9 @@ struct PopoverContentView: View {
 
     private func pillButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 Image(systemName: icon).font(.system(size: 11))
-                Text(title).font(.system(size: 11, weight: .semibold, design: .rounded))
+                Text(title).font(AppFont.semibold(11))
             }
             .foregroundColor(Theme.claudeOrange)
             .padding(.horizontal, 10)
@@ -287,18 +322,46 @@ struct PopoverContentView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: Settings — Menu bar format picker
+
+    private var menuBarFormatRow: some View {
+        HStack(spacing: 6) {
+            Text(L.menuBarFormat)
+                .font(AppFont.regular(11))
+                .foregroundColor(Theme.textPrimary)
+            Spacer()
+            ForEach(MenuBarFormat.allCases, id: \.self) { fmt in
+                Button(action: { viewModel.menuBarFormat = fmt }) {
+                    Text(fmt.displayName)
+                        .font(viewModel.menuBarFormat == fmt ? AppFont.bold(10) : AppFont.regular(10))
+                        .foregroundColor(viewModel.menuBarFormat == fmt ? Theme.claudeOrange : Theme.textSecondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(viewModel.menuBarFormat == fmt ? Theme.claudeOrange.opacity(0.1) : Color.clear)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(viewModel.menuBarFormat == fmt ? Theme.claudeOrange.opacity(0.3) : Theme.border, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(L.menuBarFormat): \(fmt.displayName)")
+            }
+        }
+    }
+
     // MARK: Settings — Account rows
 
     private var languageRow: some View {
         HStack(spacing: 8) {
             Text(L.language)
-                .font(.system(size: 11, design: .rounded))
+                .font(AppFont.regular(11))
                 .foregroundColor(Theme.textPrimary)
             Spacer()
             ForEach(AppLanguage.allCases, id: \.self) { lang in
                 Button(action: { viewModel.language = lang }) {
                     Text(lang.displayName)
-                        .font(.system(size: 10, weight: viewModel.language == lang ? .bold : .regular, design: .rounded))
+                        .font(viewModel.language == lang ? AppFont.bold(11) : AppFont.regular(11))
                         .foregroundColor(viewModel.language == lang ? Theme.claudeOrange : Theme.textSecondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -318,18 +381,20 @@ struct PopoverContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Circle()
-                    .fill(viewModel.credentialStatus == .found ? Theme.success : Theme.danger)
+                    .fill(credentialDotColor)
                     .frame(width: 8, height: 8)
 
-                Text(viewModel.credentialStatus == .found ? L.autoDetected : L.notFound)
-                    .font(.system(size: 11, design: .rounded))
+                Text(credentialStatusText)
+                    .font(AppFont.regular(11))
                     .foregroundColor(Theme.textPrimary)
 
                 Spacer()
 
                 if viewModel.credentialStatus == .notFound {
                     pillButton(icon: "terminal", title: L.openTerminal) {
-                        NSWorkspace.shared.launchApplication("Terminal")
+                        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Terminal") {
+                            NSWorkspace.shared.openApplication(at: url, configuration: .init(), completionHandler: nil)
+                        }
                     }
                 }
 
@@ -338,7 +403,7 @@ struct PopoverContentView: View {
                     viewModel.fetchUsage()
                 }) {
                     Text(L.refresh)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .font(AppFont.semibold(10))
                         .foregroundColor(Theme.claudeOrange)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -355,11 +420,11 @@ struct PopoverContentView: View {
             if viewModel.credentialStatus == .notFound {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L.toFixThis)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .font(AppFont.semibold(10))
                         .foregroundColor(Theme.claudeOrange)
-                    Text(L.step1Terminal).font(.system(size: 10, design: .rounded)).foregroundColor(Theme.textSecondary)
-                    Text(L.step2Login).font(.system(size: 10, design: .rounded)).foregroundColor(Theme.textSecondary)
-                    Text(L.step3Refresh).font(.system(size: 10, design: .rounded)).foregroundColor(Theme.textSecondary)
+                    Text(L.step1Terminal).font(AppFont.regular(10)).foregroundColor(Theme.textSecondary)
+                    Text(L.step2Login).font(AppFont.regular(10)).foregroundColor(Theme.textSecondary)
+                    Text(L.step3Refresh).font(AppFont.regular(10)).foregroundColor(Theme.textSecondary)
                 }
                 .padding(10)
                 .background(Theme.surface)
@@ -371,40 +436,75 @@ struct PopoverContentView: View {
         }
     }
 
+    private var credentialDotColor: Color {
+        switch viewModel.credentialStatus {
+        case .found:    return Theme.success
+        case .checking: return Theme.textSecondary
+        case .notFound: return Theme.danger
+        }
+    }
+
+    private var credentialStatusText: String {
+        switch viewModel.credentialStatus {
+        case .found:    return L.autoDetected
+        case .checking: return L.checkingCredentials
+        case .notFound: return L.notFound
+        }
+    }
+
     // MARK: - Current Session
 
     private var currentSessionSection: some View {
         GlassCard {
-            HStack(alignment: .center, spacing: 16) {
+            HStack(alignment: .center, spacing: 20) {
                 SessionRingView(
                     percent: viewModel.usage.sessionUsagePercent,
-                    color: percentColor(viewModel.usage.sessionUsagePercent)
+                    color: percentColor(viewModel.usage.sessionUsagePercent),
+                    isLoading: viewModel.isSyncing && !viewModel.usage.isConnected,
+                    isDisconnected: !viewModel.usage.isConnected && !viewModel.isSyncing
                 )
-                .frame(width: viewModel.compactMode ? 60 : 76,
-                       height: viewModel.compactMode ? 60 : 76)
+                .frame(width: viewModel.compactMode ? 72 : 92,
+                       height: viewModel.compactMode ? 72 : 92)
+                .accessibilityLabel("\(L.currentSession): \(Int(viewModel.usage.sessionUsagePercent)) percent")
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(L.currentSession)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .font(AppFont.semibold(11))
                         .foregroundColor(Theme.textSecondary)
                         .textCase(.uppercase)
-                        .tracking(0.5)
+                        .tracking(0.8)
 
-                    HStack(spacing: 5) {
+                    HStack(spacing: 6) {
                         Image(systemName: "clock")
-                            .font(.system(size: 11))
+                            .font(.system(size: 12))
                             .foregroundColor(percentColor(viewModel.usage.sessionUsagePercent))
                         Text(viewModel.sessionResetText)
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .font(AppFont.semibold(13))
                             .foregroundColor(Theme.textPrimary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    if viewModel.usage.isConnected, let eta = viewModel.etaText {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(Theme.warning)
+                            Text(eta)
+                                .font(AppFont.medium(11))
+                                .foregroundColor(Theme.warning)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.top, 2)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
 
                 Spacer(minLength: 0)
             }
             .padding(.vertical, 4)
+            .animation(.easeInOut(duration: 0.3), value: viewModel.etaText)
         }
     }
 
@@ -412,10 +512,10 @@ struct PopoverContentView: View {
 
     private var weeklyLimitsSection: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Text(L.weeklyLimits)
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(AppFont.bold(13))
                         .foregroundColor(Theme.textPrimary)
 
                     Spacer()
@@ -424,7 +524,7 @@ struct PopoverContentView: View {
                         NSWorkspace.shared.open(URL(string: "https://support.anthropic.com/en/articles/9964580-how-does-usage-work-on-claude-ai")!)
                     }
                     .buttonStyle(.plain)
-                    .font(.system(size: 10, design: .rounded))
+                    .font(AppFont.regular(10))
                     .foregroundColor(Theme.claudeOrange)
                     .onHover { hovering in
                         if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
@@ -434,11 +534,11 @@ struct PopoverContentView: View {
                 // All models
                 HStack {
                     Text(L.allModels)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(AppFont.medium(12))
                         .foregroundColor(Theme.textPrimary)
                     Spacer()
                     Text("\(Int(viewModel.usage.weeklyAllModelsPercent))%")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .font(AppFont.bold(12))
                         .foregroundColor(percentColor(viewModel.usage.weeklyAllModelsPercent))
                 }
 
@@ -450,7 +550,7 @@ struct PopoverContentView: View {
 
                 if !viewModel.usage.weeklyAllModelsResetDate.isEmpty {
                     Text(L.resetsAt(viewModel.usage.weeklyAllModelsResetDate))
-                        .font(.system(size: 11, design: .rounded))
+                        .font(AppFont.regular(11))
                         .foregroundColor(Theme.textSecondary)
                 }
 
@@ -459,11 +559,11 @@ struct PopoverContentView: View {
                 // Sonnet only
                 HStack {
                     Text(L.sonnetOnly)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(AppFont.medium(12))
                         .foregroundColor(Theme.textPrimary)
                     Spacer()
                     Text("\(Int(viewModel.usage.weeklySonnetPercent))%")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .font(AppFont.bold(12))
                         .foregroundColor(percentColor(viewModel.usage.weeklySonnetPercent))
                 }
 
@@ -472,6 +572,23 @@ struct PopoverContentView: View {
                     showScale: false,
                     showIcon: false
                 )
+
+                Divider().background(Theme.border.opacity(0.3))
+
+                // Sparkline trend
+                HStack {
+                    Image(systemName: "chart.xyaxis.line")
+                        .font(.system(size: 10))
+                        .foregroundColor(Theme.textSecondary)
+                    Text(L.sevenDayTrend)
+                        .font(AppFont.medium(11))
+                        .foregroundColor(Theme.textSecondary)
+                    Spacer()
+                }
+
+                SparklineView(points: viewModel.usageHistory)
+                    .frame(height: 36)
+                    .accessibilityLabel(L.sevenDayTrend)
             }
         }
     }
@@ -482,7 +599,7 @@ struct PopoverContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Text(L.autoSync)
-                    .font(.system(size: 11, design: .rounded))
+                    .font(AppFont.regular(11))
                     .foregroundColor(Theme.textSecondary)
 
                 Spacer()
@@ -490,7 +607,7 @@ struct PopoverContentView: View {
                 ForEach(SyncInterval.allCases, id: \.self) { interval in
                     Button(action: { viewModel.syncInterval = interval }) {
                         Text(interval.rawValue)
-                            .font(.system(size: 10, weight: viewModel.syncInterval == interval ? .bold : .regular, design: .rounded))
+                            .font(viewModel.syncInterval == interval ? AppFont.bold(11) : AppFont.regular(11))
                             .foregroundColor(viewModel.syncInterval == interval ? Theme.claudeOrange : Theme.textSecondary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
@@ -515,7 +632,7 @@ struct PopoverContentView: View {
             }
 
             Text(L.syncNote)
-                .font(.system(size: 9, design: .rounded))
+                .font(AppFont.regular(9))
                 .foregroundColor(Theme.textSecondary.opacity(0.7))
         }
     }
@@ -523,45 +640,57 @@ struct PopoverContentView: View {
     // MARK: - Footer
 
     private var footerSection: some View {
-        HStack {
-            Text("v1.3.0")
-                .font(.system(size: 10, design: .rounded))
+        HStack(spacing: 12) {
+            Text("v1.2.0")
+                .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
             Spacer()
 
             Text(viewModel.lastSyncText)
-                .font(.system(size: 10, design: .rounded))
+                .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
             Button(action: { viewModel.fetchUsage() }) {
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     if viewModel.isSyncing {
                         ProgressView()
-                            .scaleEffect(0.5)
-                            .frame(width: 10, height: 10)
+                            .scaleEffect(0.55)
+                            .frame(width: 12, height: 12)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(Theme.claudeOrange)
                     }
                     Text(L.sync)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .font(AppFont.semibold(11))
                         .foregroundColor(Theme.claudeOrange)
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Theme.claudeOrange.opacity(0.08))
+                .cornerRadius(6)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(viewModel.isSyncing)
-
-            Divider()
-                .frame(height: 12)
-                .background(Theme.border)
+            .accessibilityLabel(L.sync)
+            .help("\(L.sync) (⌘R)")
 
             Button(action: { NSApplication.shared.terminate(nil) }) {
                 Text(L.quit)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .font(AppFont.semibold(11))
                     .foregroundColor(Theme.danger)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(L.quit)
+            .keyboardShortcut("q", modifiers: .command)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
     }
 
     // MARK: - Buddy
@@ -576,7 +705,7 @@ struct PopoverContentView: View {
 
                     Button(action: { viewModel.buddyHatch() }) {
                         Label("/buddy", systemImage: "egg.fill")
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(AppFont.semibold(11))
                             .foregroundColor(.white)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 6)
@@ -591,7 +720,7 @@ struct PopoverContentView: View {
                         .frame(height: 80)
 
                     Text("Hatching...")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .font(AppFont.medium(11))
                         .foregroundColor(Theme.textSecondary)
 
                 } else if let spec = viewModel.buddySpec {
@@ -1086,6 +1215,112 @@ struct BuddyStatBar: View {
     }
 }
 
+// MARK: - Sparkline (7-day session usage trend)
+
+struct SparklineView: View {
+    let points: [UsageHistoryPoint]
+
+    private var samples: [Double] {
+        // Bucket the last 7 days into ~24 equal buckets of avg sessionPercent.
+        let buckets = 24
+        let now = Date()
+        let span: TimeInterval = 7 * 86400
+        let start = now.addingTimeInterval(-span)
+        let recent = points.filter { $0.timestamp >= start }
+        // Need at least 2 readings spanning a non-trivial range to draw a meaningful trend.
+        guard recent.count >= 2,
+              let first = recent.first,
+              let last = recent.last,
+              last.timestamp.timeIntervalSince(first.timestamp) > 60
+        else { return [] }
+
+        var sums = [Double](repeating: 0, count: buckets)
+        var counts = [Int](repeating: 0, count: buckets)
+        for p in recent {
+            let idx = min(buckets - 1, max(0, Int(p.timestamp.timeIntervalSince(start) / span * Double(buckets))))
+            sums[idx] += p.sessionPercent
+            counts[idx] += 1
+        }
+        // Seed carry-forward with the earliest known sample so empty leading buckets
+        // baseline to the first reading instead of dropping to zero.
+        var out: [Double] = []
+        var lastVal: Double = first.sessionPercent
+        for i in 0..<buckets {
+            if counts[i] > 0 {
+                lastVal = sums[i] / Double(counts[i])
+            }
+            out.append(lastVal)
+        }
+        return out
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            if samples.count < 2 {
+                VStack {
+                    Spacer()
+                    Text(L.noTrendYet)
+                        .font(AppFont.regular(9))
+                        .foregroundColor(Theme.textSecondary.opacity(0.6))
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                ZStack {
+                    // Fill under line
+                    Path { path in
+                        let pts = points(for: geo.size)
+                        guard let first = pts.first else { return }
+                        path.move(to: CGPoint(x: first.x, y: geo.size.height))
+                        path.addLine(to: first)
+                        for p in pts.dropFirst() { path.addLine(to: p) }
+                        if let last = pts.last {
+                            path.addLine(to: CGPoint(x: last.x, y: geo.size.height))
+                        }
+                        path.closeSubpath()
+                    }
+                    .fill(
+                        LinearGradient(
+                            colors: [Theme.claudeOrange.opacity(0.25), Theme.claudeOrange.opacity(0.0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+
+                    // Line
+                    Path { path in
+                        let pts = points(for: geo.size)
+                        guard let first = pts.first else { return }
+                        path.move(to: first)
+                        for p in pts.dropFirst() { path.addLine(to: p) }
+                    }
+                    .stroke(Theme.claudeOrange, style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+
+                    // Last-point dot
+                    if let last = points(for: geo.size).last {
+                        Circle()
+                            .fill(Theme.claudeOrange)
+                            .frame(width: 5, height: 5)
+                            .position(last)
+                    }
+                }
+            }
+        }
+    }
+
+    private func points(for size: CGSize) -> [CGPoint] {
+        let s = samples
+        guard s.count >= 2 else { return [] }
+        let maxV: Double = max(20, s.max() ?? 1) // floor at 20% so tiny noise doesn't look spiky
+        let stepX = size.width / Double(s.count - 1)
+        return s.enumerated().map { i, v in
+            let x = Double(i) * stepX
+            let y = size.height - (v / maxV) * size.height
+            return CGPoint(x: x, y: y)
+        }
+    }
+}
+
 // MARK: - Glass Card Container
 
 struct GlassCard<Content: View>: View {
@@ -1097,15 +1332,15 @@ struct GlassCard<Content: View>: View {
 
     var body: some View {
         content
-            .padding(14)
+            .padding(18)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 14)
                     .fill(Theme.surface)
-                    .shadow(color: Theme.glassShadow, radius: 8, x: 0, y: 2)
+                    .shadow(color: Theme.glassShadow, radius: 10, x: 0, y: 3)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Theme.border.opacity(0.6), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Theme.border.opacity(0.5), lineWidth: 1)
             )
     }
 }
@@ -1138,32 +1373,32 @@ struct UsageProgressBar: View {
     let showIcon: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 5) {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: 7)
                         .fill(Theme.progressBg.opacity(0.5))
-                        .frame(height: 20)
+                        .frame(height: 24)
 
                     if percent > 0 {
                         HStack(spacing: 0) {
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: 7)
                                 .fill(progressGradient)
                                 .frame(
-                                    width: max(8, geometry.size.width * CGFloat(min(percent, 100)) / 100),
-                                    height: 20
+                                    width: max(10, geometry.size.width * CGFloat(min(percent, 100)) / 100),
+                                    height: 24
                                 )
 
                             if showIcon && percent > 5 {
                                 ClaudeCodeIconView()
-                                    .frame(width: 16, height: 16)
+                                    .frame(width: 18, height: 18)
                                     .offset(x: -2)
                             }
                         }
                     }
                 }
             }
-            .frame(height: 20)
+            .frame(height: 24)
 
             if showScale {
                 HStack {
@@ -1177,7 +1412,7 @@ struct UsageProgressBar: View {
                     Spacer()
                     Text("100")
                 }
-                .font(.system(size: 9, design: .rounded))
+                .font(AppFont.regular(9))
                 .foregroundColor(Theme.textSecondary)
             }
         }
@@ -1345,22 +1580,49 @@ func createMenuBarIcon(size: NSSize = NSSize(width: 18, height: 18), percent: Do
 
 struct OnboardingView: View {
     @ObservedObject var viewModel: UsageViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var heroPulse: Double = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 16) {
+            // Hero — animated ring preview at 42%
+            ZStack {
+                Circle()
+                    .stroke(Theme.progressBg, lineWidth: 6)
+                    .frame(width: 64, height: 64)
+                Circle()
+                    .trim(from: 0, to: 0.42)
+                    .stroke(Theme.claudeOrange, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: 64, height: 64)
                 ClaudeCodeIconView()
-                    .frame(width: 36, height: 36)
+                    .frame(width: 26, height: 26)
+                    .scaleEffect(1.0 + heroPulse * 0.04)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 4)
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                    heroPulse = 1.0
+                }
+            }
+            .accessibilityHidden(true)
+
+            VStack(spacing: 4) {
                 Text(L.welcomeTitle)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(AppFont.bold(16))
                     .foregroundColor(Theme.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(L.welcomeBody1)
+                    .font(AppFont.regular(11))
+                    .foregroundColor(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
-            Text(L.welcomeBody1)
-                .font(.system(size: 12, design: .rounded))
-                .foregroundColor(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
 
             VStack(alignment: .leading, spacing: 10) {
                 stepRow(number: 1, icon: "terminal", text: L.welcomeStep1)
@@ -1377,19 +1639,31 @@ struct OnboardingView: View {
             HStack {
                 Spacer()
                 Button(action: { viewModel.hasCompletedOnboarding = true }) {
-                    Text(L.getStarted)
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(Theme.claudeOrange)
-                        .cornerRadius(8)
+                    HStack(spacing: 6) {
+                        Text(L.getStarted)
+                            .font(AppFont.bold(12))
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 11))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 9)
+                    .background(
+                        LinearGradient(
+                            colors: [Theme.claudeOrange, Theme.claudeOrange.opacity(0.85)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .cornerRadius(9)
+                    .shadow(color: Theme.claudeOrange.opacity(0.3), radius: 6, y: 2)
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(.defaultAction)
+                .accessibilityLabel(L.getStarted)
                 Spacer()
             }
-            .padding(.top, 4)
+            .padding(.top, 2)
         }
         .padding(20)
     }
@@ -1398,7 +1672,7 @@ struct OnboardingView: View {
     private func stepRow(number: Int, icon: String, text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Text("\(number)")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .font(AppFont.bold(11))
                 .foregroundColor(.white)
                 .frame(width: 18, height: 18)
                 .background(Theme.claudeOrange)
@@ -1409,7 +1683,7 @@ struct OnboardingView: View {
                     .font(.system(size: 11))
                     .foregroundColor(Theme.claudeOrange)
                 Text(text)
-                    .font(.system(size: 11, design: .rounded))
+                    .font(AppFont.regular(11))
                     .foregroundColor(Theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -1422,36 +1696,91 @@ struct OnboardingView: View {
 struct SessionRingView: View {
     let percent: Double          // 0.0 .. 100.0
     let color: Color
+    var isLoading: Bool = false
+    var isDisconnected: Bool = false
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulsePhase: Double = 0
+    @State private var loadingPhase: Double = 0
 
     private var fraction: Double {
-        max(0, min(percent / 100.0, 1.0))
+        guard !isDisconnected else { return 0 }
+        return max(0, min(percent / 100.0, 1.0))
+    }
+
+    private var shouldPulse: Bool {
+        !reduceMotion && percent >= 80 && !isLoading && !isDisconnected
     }
 
     var body: some View {
         ZStack {
             // Track
             Circle()
-                .stroke(Theme.progressBg, lineWidth: 8)
+                .stroke(Theme.progressBg, lineWidth: 10)
 
-            // Progress arc
-            Circle()
-                .trim(from: 0, to: fraction)
-                .stroke(
-                    color,
-                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(.easeOut(duration: 0.6), value: fraction)
+            if isLoading {
+                // Indeterminate skeleton arc
+                Circle()
+                    .trim(from: 0, to: 0.18)
+                    .stroke(
+                        Theme.accentDim,
+                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(loadingPhase))
+                    .onAppear {
+                        if reduceMotion {
+                            loadingPhase = 0
+                        } else {
+                            withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
+                                loadingPhase = 360
+                            }
+                        }
+                    }
+            } else {
+                // Progress arc
+                Circle()
+                    .trim(from: 0, to: fraction)
+                    .stroke(
+                        color,
+                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .animation(
+                        reduceMotion
+                            ? .linear(duration: 0)
+                            : .spring(response: 0.7, dampingFraction: 0.78),
+                        value: fraction
+                    )
+            }
+
+            // Danger pulse glow (80%+)
+            if shouldPulse {
+                Circle()
+                    .stroke(color.opacity(0.4 - pulsePhase * 0.3), lineWidth: 10 + pulsePhase * 6)
+                    .blur(radius: 3)
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                            pulsePhase = 1.0
+                        }
+                    }
+            }
 
             // Center label
             VStack(spacing: 0) {
-                Text("\(Int(percent))")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(Theme.textPrimary)
-                Text("%")
-                    .font(.system(size: 9, weight: .semibold, design: .rounded))
-                    .foregroundColor(Theme.textSecondary)
-                    .offset(y: -2)
+                if isLoading || isDisconnected {
+                    Text("--")
+                        .font(AppFont.bold(22))
+                        .foregroundColor(Theme.textSecondary)
+                } else {
+                    Text("\(Int(percent))")
+                        .font(AppFont.black(28))
+                        .foregroundColor(Theme.textPrimary)
+                        .contentTransition(.numericText())
+                    Text("%")
+                        .font(AppFont.semibold(10))
+                        .foregroundColor(Theme.textSecondary)
+                        .offset(y: -2)
+                }
             }
         }
     }
