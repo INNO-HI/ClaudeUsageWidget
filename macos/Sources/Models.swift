@@ -415,6 +415,13 @@ class UsageViewModel: ObservableObject {
     @Published var alertThresholdHigh: Int = 90 {
         didSet { saveConfig() }
     }
+    /// Optional override for the OAuth credentials file. nil = default path.
+    @Published var credentialPathOverride: String? = nil {
+        didSet {
+            service.credentialFilePath = credentialPathOverride ?? (NSHomeDirectory() + "/.claude/.credentials.json")
+            saveConfig()
+        }
+    }
     @Published var showBuddy: Bool = true {
         didSet { saveConfig() }
     }
@@ -777,6 +784,34 @@ class UsageViewModel: ObservableObject {
         }
     }
 
+    /// Convert usageHistory to CSV string (timestamp, session_pct, weekly_all_pct).
+    func exportHistoryCSV() -> String {
+        var lines = ["timestamp,session_percent,weekly_all_models_percent"]
+        let iso = ISO8601DateFormatter()
+        for p in usageHistory {
+            lines.append("\(iso.string(from: p.timestamp)),\(p.sessionPercent),\(p.weeklyAllModelsPercent)")
+        }
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// Convert usageHistory to pretty-printed JSON string.
+    func exportHistoryJSON() -> String {
+        let enc = JSONEncoder()
+        enc.dateEncodingStrategy = .iso8601
+        enc.outputFormatting = [.prettyPrinted, .sortedKeys]
+        if let data = try? enc.encode(usageHistory),
+           let s = String(data: data, encoding: .utf8) {
+            return s
+        }
+        return "[]"
+    }
+
+    /// Wipe persisted history and reset in-memory state.
+    func clearHistory() {
+        usageHistory.removeAll()
+        try? FileManager.default.removeItem(atPath: historyPath)
+    }
+
     private func loadHistory() {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: historyPath)) else { return }
         let decoder = JSONDecoder()
@@ -951,6 +986,9 @@ class UsageViewModel: ObservableObject {
         if let high = config["alertThresholdHigh"] as? Int, (60...99).contains(high) {
             alertThresholdHigh = high
         }
+        if let path = config["credentialPathOverride"] as? String, !path.isEmpty {
+            credentialPathOverride = path
+        }
         // Keep low < high
         if alertThresholdLow >= alertThresholdHigh {
             alertThresholdLow = max(50, alertThresholdHigh - 10)
@@ -1004,6 +1042,7 @@ class UsageViewModel: ObservableObject {
             "notificationsEnabled": notificationsEnabled,
             "alertThresholdLow": alertThresholdLow,
             "alertThresholdHigh": alertThresholdHigh,
+            "credentialPathOverride": credentialPathOverride ?? "",
             "showBuddy": showBuddy,
             "compactMode": compactMode,
             "hasCompletedOnboarding": hasCompletedOnboarding,

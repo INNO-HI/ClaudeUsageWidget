@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] — 2026-06-02
+
+### Added
+- **CSV / JSON export** of the 7-day usage history (Settings → Data) with a save panel, plus a "Clear history" action behind an `NSAlert` confirmation.
+- **Multi-account credential path** — Settings → Account exposes a "Credentials file" row that lets users point the widget at a non-default `~/.claude/.credentials.json`. Persisted via `credentialPathOverride` in the config file.
+- **Rich menu-bar tooltip** — hovering the status item now shows the current session %, reset time, ETA, weekly %, and last-sync timestamp without opening the popover.
+- **Unit test suite** (Swift Package at `macos/Package.swift`) covering the pure-logic surface: ETA estimation, sparkline bucketing, threshold sanitisation, time formatting, and `UsageHistoryPoint` Codable round-trip. 22 tests, runs with `swift test`.
+- **GitHub Actions CI** — `.github/workflows/test.yml` runs the test suite on every push and PR; `.github/workflows/release-macos.yml` rewritten to build / sign / notarize / DMG / upload on every `v*-macos` tag and to update `appcast.xml` automatically.
+- **Mac App Store submission scaffolding** — sandbox entitlements at `Resources/entitlements/Sandbox-MAS.entitlements`, plus `MAS-SUBMISSION.md` covering Bundle ID separation, security-scoped bookmarks, and the dual-build pipeline.
+- **Homebrew Cask submission guide** at `macos/HOMEBREW-PR-GUIDE.md` (local audit, PR template, automated bump action).
+
+### Changed
+- `UsageService.credentialFilePath` is now a mutable property the ViewModel drives — service no longer hardcodes the home-directory path.
+- Settings layout grows a new "Data" category between Notifications and Updates.
+
+### Internal
+- Extracted pure logic into `macos/CoreLogic/CoreLogic.swift` so the test target can import it without dragging in AppKit / SwiftUI / Sparkle.
+- `build.sh` now uses the `SIGN_IDENTITY` env var that CI passes (still defaults to the maintainer's Developer ID locally).
+
+---
+
 ## [1.3.0] — 2026-06-02
 
 ### Added

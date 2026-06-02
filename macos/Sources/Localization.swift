@@ -45,6 +45,10 @@ struct L {
     // Settings
     static var credentials: String { t("Credentials", ko: "인증 정보", ja: "認証情報", zh: "凭证") }
     static var autoDetected: String { t("Auto-detected from Keychain", ko: "키체인에서 자동 감지됨", ja: "キーチェーンから自動検出", zh: "已从钥匙串自动检测") }
+    static var credentialPath: String { t("Credentials file", ko: "인증 파일", ja: "認証ファイル", zh: "凭证文件") }
+    static var customPath: String { t("Custom…", ko: "직접 지정…", ja: "カスタム…", zh: "自定义…") }
+    static var defaultPath: String { t("Default", ko: "기본", ja: "デフォルト", zh: "默认") }
+    static var clearOverride: String { t("Reset to default", ko: "기본으로 복원", ja: "デフォルトに戻す", zh: "恢复默认") }
     static var notFound: String { t("Not found", ko: "찾을 수 없음", ja: "見つかりません", zh: "未找到") }
     static var refresh: String { t("Refresh", ko: "새로고침", ja: "再読み込み", zh: "刷新") }
     static var toFixThis: String { t("To fix this:", ko: "해결 방법:", ja: "解決方法:", zh: "解决方法:") }
@@ -58,6 +62,21 @@ struct L {
     static var loadingData: String { t("Loading data...", ko: "데이터 불러오는 중...", ja: "データを読み込み中...", zh: "正在加载数据...") }
     static var noTrendYet: String { t("Trend will appear as data accumulates", ko: "데이터가 더 쌓이면 트렌드가 표시됩니다", ja: "データが集まると推移が表示されます", zh: "积累更多数据后将显示趋势") }
     static var checkForUpdates: String { t("Check for Updates", ko: "업데이트 확인", ja: "アップデートを確認", zh: "检查更新") }
+    static var sectionData: String { t("Data", ko: "데이터", ja: "データ", zh: "数据") }
+    static var exportCSV: String { t("Export CSV", ko: "CSV로 내보내기", ja: "CSV エクスポート", zh: "导出 CSV") }
+    static var exportJSON: String { t("Export JSON", ko: "JSON으로 내보내기", ja: "JSON エクスポート", zh: "导出 JSON") }
+    static var clearHistory: String { t("Clear history", ko: "기록 삭제", ja: "履歴を削除", zh: "清除历史") }
+    static var clearHistoryConfirm: String { t("Delete all usage history?", ko: "모든 사용량 기록을 삭제하시겠습니까?", ja: "すべての使用履歴を削除しますか?", zh: "确定要删除所有用量历史?") }
+    static var deleteAction: String { t("Delete", ko: "삭제", ja: "削除", zh: "删除") }
+    static var cancelAction: String { t("Cancel", ko: "취소", ja: "キャンセル", zh: "取消") }
+    static func historyCount(_ count: Int) -> String {
+        switch lang {
+        case .en:   return "\(count) data points"
+        case .ko:   return "\(count)건 기록"
+        case .ja:   return "\(count) 件のデータ"
+        case .zhCN: return "\(count) 条数据"
+        }
+    }
     static var openTerminal: String { t("Open Terminal", ko: "터미널 열기", ja: "ターミナルを開く", zh: "打开终端") }
     static var sectionGeneral: String { t("General", ko: "일반", ja: "一般", zh: "通用") }
     static var sectionNotifications: String { t("Notifications", ko: "알림", ja: "通知", zh: "通知") }

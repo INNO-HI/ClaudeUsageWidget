@@ -7,6 +7,30 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.4.0</title>
+            <sparkle:shortVersionString>1.4.0</sparkle:shortVersionString>
+            <sparkle:version>5</sparkle:version>
+            <pubDate>Tue, 02 Jun 2026 20:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Data export · multi-account · rich tooltip · CI</h2>
+                <ul>
+                    <li>CSV / JSON export of the 7-day usage history (Settings → Data)</li>
+                    <li>Multi-account credential path — point the widget at a non-default credentials file</li>
+                    <li>Rich menu-bar tooltip — hover the icon for current %, ETA, weekly %, last sync</li>
+                    <li>GitHub Actions CI for tests + release automation</li>
+                    <li>Mac App Store submission scaffolding (entitlements + dual-build guide)</li>
+                    <li>22-test unit suite (swift test) for ETA, sparkline, thresholds, formatting</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.4.0-macos/ClaudeUsageWidget.dmg"
+                length="2259346"
+                type="application/octet-stream"
+                sparkle:edSignature="AqKPv54hcZmjc4XdZ0eNYcraKI9uuCQAjRPfNDLY+UEaHYDScIZ5eDroz09RlCdbriZYFXI4660x/GvhVN/1Dw==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.3.0</title>
             <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
             <sparkle:version>4</sparkle:version>

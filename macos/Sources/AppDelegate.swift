@@ -122,6 +122,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         button.title = text.isEmpty ? "" : " \(text)"
         button.imagePosition = .imageLeading
 
+        // Rich tooltip — hover the menu bar icon for the full status
+        button.toolTip = buildTooltip()
+
         // Manage warning pulse based on user's low threshold
         let shouldPulse = !syncing
             && viewModel.usage.isConnected
@@ -131,6 +134,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             stopPulseAnimation()
         }
+    }
+
+    private func buildTooltip() -> String {
+        guard viewModel.usage.isConnected else {
+            return "Claude Usage Widget — \(viewModel.credentialStatus == .notFound ? L.notLoggedIn : L.never)"
+        }
+
+        let pct = Int(viewModel.usage.sessionUsagePercent)
+        let reset = viewModel.sessionResetText
+        var lines = [
+            "Claude Usage Widget",
+            "\(L.currentSession): \(pct)%",
+            reset,
+        ]
+        if let eta = viewModel.etaText {
+            lines.append(eta)
+        }
+        if viewModel.usage.weeklyAllModelsPercent > 0 {
+            let weekly = Int(viewModel.usage.weeklyAllModelsPercent)
+            lines.append("\(L.weeklyLimits): \(weekly)%")
+        }
+        if let last = viewModel.usage.lastSyncTime {
+            let df = DateFormatter()
+            df.dateFormat = "HH:mm"
+            lines.append("⟳ \(df.string(from: last))")
+        }
+        return lines.joined(separator: "\n")
     }
 
     // MARK: - Bounce Animation

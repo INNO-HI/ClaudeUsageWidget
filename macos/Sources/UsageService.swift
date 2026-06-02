@@ -39,10 +39,14 @@ class ClaudeUsageService {
 
     // MARK: - Read from macOS Keychain
 
+    /// Path to the OAuth credentials file. Defaults to `~/.claude/.credentials.json`
+    /// but can be overridden so users with multiple Claude accounts can point the
+    /// widget at a per-profile copy.
+    var credentialFilePath: String = NSHomeDirectory() + "/.claude/.credentials.json"
+
     func readCredentialsFromKeychain() -> OAuthCredentials? {
         // Try file first (no Keychain prompt)
-        let filePath = NSHomeDirectory() + "/.claude/.credentials.json"
-        if let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)) {
+        if let data = try? Data(contentsOf: URL(fileURLWithPath: credentialFilePath)) {
             if let creds = parseCredentials(data: data) {
                 return creds
             }

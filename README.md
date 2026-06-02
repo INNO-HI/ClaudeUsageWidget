@@ -204,7 +204,16 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.3.0 (latest)
+### v1.4.0 (latest)
+- Added **CSV / JSON export** of usage history (Settings → Data) + Clear history
+- Added **Multi-account credential path** — point the widget at a non-default credentials file
+- Added **Rich menu-bar tooltip** — hover the icon for current %, ETA, weekly %, last sync
+- Added **GitHub Actions** CI for tests + release automation (auto build/sign/notarize/DMG/appcast on tag push)
+- Added **Mac App Store submission scaffolding** — entitlements + dual-build guide
+- Added **22-test unit suite** (`swift test`) for pure logic (ETA, sparkline, thresholds, formatting)
+- Added **Homebrew Cask submission guide**
+
+### v1.3.0
 - Added **Custom alert thresholds** — two sliders replace fixed 80/90%
 - Added **3-step onboarding** with `claude login` copy button + notifications opt-in
 - Added **Friendly error banner** (credentials / rate-limit / network / server) with Retry & Open Terminal

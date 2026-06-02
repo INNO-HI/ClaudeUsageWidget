@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Mac App Store distribution requires App Sandbox.
+      The widget needs:
+        - Outbound HTTPS to api.anthropic.com → com.apple.security.network.client
+        - Read access to the user-picked credentials file → user-selected.read-only
+          (Sandbox forbids hard-coded reads of ~/.claude/.credentials.json. The first
+          launch shows an NSOpenPanel; the resulting URL is persisted as a
+          security-scoped bookmark.)
+        - Read/write the support directory inside its container
+          (handled by App Sandbox itself, no separate entitlement required.)
+    -->
+
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- User picks the credentials JSON via NSOpenPanel; bookmark stored in defaults -->
+    <key>com.apple.security.files.user-selected.read-only</key>
+    <true/>
+
+    <!--
+      Sparkle 2.x cannot ship inside a Mac App Store sandbox build because
+      automatic updates would bypass App Store delivery. When you submit
+      to MAS, REMOVE Sparkle and rely on the App Store update channel.
+      The non-MAS (Developer ID) build keeps Sparkle as-is.
+    -->
+</dict>
+</plist>

@@ -20,6 +20,8 @@ dist/
 
 # macOS native — local-only build artefacts & oversized Sparkle extras
 macos/build/
+macos/.build/
+macos/.swiftpm/
 macos/vendor/Symbols/
 macos/vendor/Sparkle Test App.app/
 macos/vendor/Sparkle.tar.xz

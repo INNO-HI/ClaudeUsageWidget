@@ -1,22 +1,37 @@
-# Auto-build and release the macOS native app on tag push (e.g. v1.2.0-macos).
+# Auto-build, sign, notarize, and release the macOS native app on tag push.
 #
-# Status: TEMPLATE — requires the macOS Swift source to be published to this repo first
-# (currently `Sources/`, `Resources/`, `vendor/`, and `build.sh` live only on the maintainer's Mac).
+# Trigger: push a tag matching `v*-macos` (e.g. v1.4.0-macos).
 #
-# Required GitHub Secrets:
-#   APPLE_DEVELOPER_ID_P12          base64-encoded .p12 export of "Developer ID Application: INNO-HI Inc."
-#   APPLE_DEVELOPER_ID_P12_PASSWORD password for the .p12
-#   APPLE_NOTARY_APPLE_ID           Apple ID email registered with the Developer Program (board@innohi.ai.kr)
-#   APPLE_NOTARY_TEAM_ID            4AL4PF4BK4
-#   APPLE_NOTARY_PASSWORD           app-specific password from appleid.apple.com
-#   SPARKLE_ED_PRIVATE_KEY          base64-encoded EdDSA private key (export with: vendor/bin/generate_keys -x -)
-#   PAGES_DEPLOY_TOKEN              fine-grained PAT with contents:write on this repo (for appcast.xml commit)
+# Required GitHub Secrets (Settings → Secrets and variables → Actions → New repository secret):
 #
-# How to enable:
-#   1. Push the macOS source files (Sources/, Resources/, vendor/, build.sh) to this repo.
-#   2. Add all secrets above under Settings → Secrets and variables → Actions.
-#   3. Tag a release: git tag v1.2.0-macos && git push origin v1.2.0-macos
-#   4. The workflow will build, notarize, sign with Sparkle, upload DMG, and update appcast.xml.
+#   APPLE_DEVELOPER_ID_P12
+#     Base64-encoded .p12 export of "Developer ID Application: INNO-HI Inc.".
+#     Create with:
+#       security find-certificate -c "Developer ID Application: INNO-HI Inc." -p > cert.p12
+#       (or export via Keychain Access → File → Export Items → .p12)
+#       base64 -i cert.p12 | pbcopy
+#
+#   APPLE_DEVELOPER_ID_P12_PASSWORD
+#     Password used when exporting the .p12.
+#
+#   APPLE_NOTARY_APPLE_ID
+#     Apple ID email registered with the Developer Program (e.g. board@innohi.ai.kr).
+#
+#   APPLE_NOTARY_TEAM_ID
+#     Team ID (4AL4PF4BK4 for INNO-HI).
+#
+#   APPLE_NOTARY_PASSWORD
+#     App-specific password generated at appleid.apple.com → Sign-In and Security
+#     → App-Specific Passwords. Do NOT use the Apple ID password directly.
+#
+#   SPARKLE_ED_PRIVATE_KEY
+#     Base64-encoded Sparkle EdDSA private key. Export with:
+#       vendor/bin/generate_keys -x - | base64 | pbcopy
+#
+#   PAGES_DEPLOY_TOKEN
+#     Fine-grained Personal Access Token with `contents: write` on this repo,
+#     used to push the updated appcast.xml back to main. Create at
+#     https://github.com/settings/personal-access-tokens.
 
 name: Release macOS App
 
@@ -24,16 +39,33 @@ on:
   push:
     tags:
       - "v*-macos"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build (e.g. v1.4.0-macos)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: macos-14
-    permissions:
-      contents: write
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: macos
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Show toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
+          xcrun notarytool --version
 
       - name: Import Developer ID certificate
         env:
@@ -43,11 +75,15 @@ jobs:
         run: |
           echo "$P12_BASE64" | base64 --decode > /tmp/cert.p12
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security import /tmp/cert.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" build.keychain
           rm /tmp/cert.p12
+          security find-identity -p codesigning -v build.keychain
 
       - name: Store notary credentials
         env:
@@ -60,73 +96,121 @@ jobs:
             --team-id "$TEAM_ID" \
             --password "$NOTARY_PASSWORD"
 
-      - name: Import Sparkle EdDSA private key
+      - name: Restore Sparkle EdDSA private key
         env:
           ED_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
-          # generate_keys reads from stdin when restoring a backed-up key
-          echo "$ED_KEY" | base64 --decode | ./vendor/bin/generate_keys -i -
+          mkdir -p ~/Library/Application\ Support/Sparkle
+          # Sparkle stores the key in Keychain; sign_update reads it from there.
+          # The simpler path: write the base64 decoded key to ~/.private/sparkle_ed.key
+          # and pipe it through sign_update's stdin. But Sparkle 2 sign_update
+          # only reads from Keychain. So we import via security add-generic-password.
+          KEY_RAW=$(echo "$ED_KEY" | base64 --decode)
+          security add-generic-password \
+            -a ed25519 \
+            -s "https://sparkle-project.org" \
+            -w "$KEY_RAW" \
+            -U \
+            build.keychain || true
 
       - name: Build, sign, notarize, DMG
         env:
           NOTARY_PROFILE: ClaudeUsageWidget
+          SIGN_IDENTITY: "Developer ID Application: INNO-HI Inc. (${{ secrets.APPLE_NOTARY_TEAM_ID }})"
         run: bash build.sh
 
-      - name: Capture EdDSA signature for appcast
+      - name: Capture EdDSA signature and length for appcast
         id: sparkle
         run: |
-          OUTPUT=$(./vendor/bin/sign_update build/ClaudeMonitor.dmg)
+          set -e
+          OUTPUT=$(./vendor/bin/sign_update build/ClaudeUsageWidget.dmg)
           # OUTPUT looks like: sparkle:edSignature="..." length="..."
           SIG=$(echo "$OUTPUT" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
           LEN=$(echo "$OUTPUT" | sed -n 's/.*length="\([^"]*\)".*/\1/p')
+          SHA=$(shasum -a 256 build/ClaudeUsageWidget.dmg | awk '{print $1}')
           echo "signature=$SIG" >> "$GITHUB_OUTPUT"
           echo "length=$LEN" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Sparkle signature: $SIG"
+          echo "Length: $LEN"
+          echo "SHA256: $SHA"
 
       - name: Upload DMG to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        working-directory: ${{ github.workspace }}
         run: |
-          gh release upload "${GITHUB_REF_NAME}" build/ClaudeMonitor.dmg --clobber
+          # Create the release if it doesn't exist (no-op if it does)
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "${TAG#v}" \
+              --notes "Automated release — see CHANGELOG.md."
+          gh release upload "$TAG" macos/build/ClaudeUsageWidget.dmg --clobber
 
       - name: Update appcast.xml
         env:
           SIG: ${{ steps.sparkle.outputs.signature }}
           LEN: ${{ steps.sparkle.outputs.length }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
           GH_TOKEN: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+        working-directory: ${{ github.workspace }}
         run: |
-          # Strip "-macos" suffix from tag for human-readable version
+          set -e
           VERSION="${TAG%-macos}"
           VERSION="${VERSION#v}"
           PUBDATE=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
+          REPO="$GITHUB_REPOSITORY"
 
-          NEW_ITEM=$(cat <<EOF
-        <item>
-            <title>Version ${VERSION}</title>
-            <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
-            <pubDate>${PUBDATE}</pubDate>
-            <enclosure
-                url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/ClaudeMonitor.dmg"
-                length="${LEN}"
-                type="application/octet-stream"
-                sparkle:edSignature="${SIG}" />
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-        </item>
-        EOF
-        )
-
-          # Insert the new <item> right after <channel><link>...</link>
           python3 - <<PY
-          import re, pathlib
-          p = pathlib.Path('docs/appcast.xml')
-          src = p.read_text()
-          new_item = """${NEW_ITEM}"""
-          out = re.sub(r'(<link>[^<]+</link>)', r'\\1\n\n' + new_item, src, count=1)
-          p.write_text(out)
+          import re, pathlib, os
+          path = pathlib.Path('docs/appcast.xml')
+          src = path.read_text(encoding='utf-8')
+
+          version = os.environ['VERSION'] if 'VERSION' in os.environ else "${VERSION}"
+          tag = "${TAG}"
+          pubdate = "${PUBDATE}"
+          sig = "${SIG}"
+          length = "${LEN}"
+          repo = "${REPO}"
+
+          new_item = f'''        <item>
+                  <title>Version {version}</title>
+                  <sparkle:shortVersionString>{version}</sparkle:shortVersionString>
+                  <pubDate>{pubdate}</pubDate>
+                  <description><![CDATA[
+                      <p>Auto-released by CI — see <a href="https://github.com/{repo}/releases/tag/{tag}">{tag}</a> notes.</p>
+                  ]]></description>
+                  <enclosure
+                      url="https://github.com/{repo}/releases/download/{tag}/ClaudeUsageWidget.dmg"
+                      length="{length}"
+                      type="application/octet-stream"
+                      sparkle:edSignature="{sig}" />
+                  <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+              </item>
+          '''
+          # Insert the new item right after <channel>...</link>...
+          out = re.sub(
+              r'(<link>[^<]+</link>\s*\n)',
+              r'\1\n' + new_item,
+              src,
+              count=1
+          )
+          path.write_text(out, encoding='utf-8')
           PY
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/appcast.xml
-          git commit -m "Sparkle: publish ${VERSION}"
-          git push origin HEAD:main
+          if ! git diff --staged --quiet; then
+            git commit -m "Sparkle: publish $VERSION via CI"
+            git push origin HEAD:main
+          else
+            echo "appcast.xml already up to date"
+          fi
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          security delete-keychain build.keychain || true

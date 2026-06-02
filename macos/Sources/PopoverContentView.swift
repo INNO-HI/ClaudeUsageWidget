@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 // MARK: - Main Popover View
 
@@ -182,6 +183,11 @@ struct PopoverContentView: View {
                 thresholdRow
             }
 
+            // ── Data ─────────────────────────────────
+            categoryHeader(L.sectionData, icon: "tray.and.arrow.down.fill")
+
+            dataExportRow
+
             // ── Updates ──────────────────────────────
             categoryHeader(L.sectionUpdates, icon: "arrow.triangle.2.circlepath")
 
@@ -249,6 +255,72 @@ struct PopoverContentView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: Settings — Data export
+
+    private var dataExportRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(L.historyCount(viewModel.usageHistory.count))
+                    .font(AppFont.regular(10))
+                    .foregroundColor(Theme.textSecondary)
+                Spacer()
+            }
+            HStack(spacing: 8) {
+                pillButton(icon: "doc.text", title: L.exportCSV) {
+                    saveExport(content: viewModel.exportHistoryCSV(), suggestedName: "claude-usage.csv")
+                }
+                pillButton(icon: "curlybraces", title: L.exportJSON) {
+                    saveExport(content: viewModel.exportHistoryJSON(), suggestedName: "claude-usage.json")
+                }
+                Spacer()
+                Button(action: confirmClearHistory) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "trash").font(.system(size: 10, weight: .semibold))
+                        Text(L.clearHistory).font(AppFont.semibold(10))
+                    }
+                    .foregroundColor(Theme.danger)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L.clearHistory)
+                .disabled(viewModel.usageHistory.isEmpty)
+            }
+        }
+    }
+
+    /// Show an NSSavePanel and write the export string to the chosen location.
+    private func saveExport(content: String, suggestedName: String) {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = suggestedName
+        panel.canCreateDirectories = true
+        panel.isExtensionHidden = false
+        // Run the save panel as a modal sheet on the popover window if possible,
+        // falling back to a free-standing modal otherwise.
+        let response: NSApplication.ModalResponse
+        if let window = NSApp.keyWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            response = panel.runModal()
+            _ = window  // silence unused warning
+        } else {
+            response = panel.runModal()
+        }
+        guard response == .OK, let url = panel.url else { return }
+        try? content.write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    private func confirmClearHistory() {
+        let alert = NSAlert()
+        alert.messageText = L.clearHistoryConfirm
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: L.deleteAction)
+        alert.addButton(withTitle: L.cancelAction)
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            viewModel.clearHistory()
+        }
     }
 
     // MARK: Settings — Notification thresholds
@@ -424,6 +496,71 @@ struct PopoverContentView: View {
                     RoundedRectangle(cornerRadius: 8).stroke(Theme.border, lineWidth: 1)
                 )
             }
+
+            credentialPathRow
+        }
+    }
+
+    // MARK: Settings — Multi-account credential path override
+
+    private var credentialPathRow: some View {
+        HStack(spacing: 8) {
+            Text(L.credentialPath)
+                .font(AppFont.regular(10))
+                .foregroundColor(Theme.textSecondary)
+
+            Text(currentCredPathDisplay)
+                .font(AppFont.mono(9))
+                .foregroundColor(viewModel.credentialPathOverride == nil ? Theme.textSecondary.opacity(0.7) : Theme.claudeOrange)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            Spacer()
+
+            Button(action: pickCredentialFile) {
+                Text(L.customPath)
+                    .font(AppFont.semibold(9))
+                    .foregroundColor(Theme.claudeOrange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Theme.claudeOrange.opacity(0.08))
+                    .cornerRadius(4)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L.customPath)
+
+            if viewModel.credentialPathOverride != nil {
+                Button(action: { viewModel.credentialPathOverride = nil; viewModel.checkCredentials(); viewModel.fetchUsage() }) {
+                    Text(L.clearOverride)
+                        .font(AppFont.semibold(9))
+                        .foregroundColor(Theme.textSecondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L.clearOverride)
+            }
+        }
+    }
+
+    private var currentCredPathDisplay: String {
+        let path = viewModel.credentialPathOverride ?? "~/.claude/.credentials.json"
+        return path.replacingOccurrences(of: NSHomeDirectory(), with: "~")
+    }
+
+    private func pickCredentialFile() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.json]
+        panel.directoryURL = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".claude", isDirectory: true)
+        panel.message = L.credentialPath
+        NSApp.activate(ignoringOtherApps: true)
+        if panel.runModal() == .OK, let url = panel.url {
+            viewModel.credentialPathOverride = url.path
+            viewModel.checkCredentials()
+            viewModel.fetchUsage()
         }
     }
 
@@ -633,7 +770,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.3.0")
+            Text("v1.4.0")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
