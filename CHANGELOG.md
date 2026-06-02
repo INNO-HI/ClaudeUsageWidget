@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] — 2026-06-02
+
+### Added
+- **Custom alert thresholds** — replace the fixed 80% / 90% notifications with two user-tunable sliders (50–95% / 60–99%) inside Settings → Notifications. Menu-bar pulse + ring glow follow the lower threshold automatically.
+- **3-step Onboarding** — Intro (animated ring) → Login guidance (copy-`claude login` button) → Notifications opt-in. Includes Back/Skip and page indicator dots.
+- **Friendly Error Banner** — surfaces classified errors (credentials / rate-limited / network / server / unknown) with `Retry`, `Open Terminal` (when relevant), and `Dismiss` actions inline above the session card.
+- **Japanese (日本語) & Simplified Chinese (中文)** localisation. The Language picker in Settings now offers EN / KO / JA / ZH.
+
+### Changed
+- `Localization.swift` switched to a 4-way `t(en:ko:ja:zh:)` helper so new strings only require additions in one place.
+- `Models.swift` exposes `errorKind: ErrorKind` and `alertThresholdLow / alertThresholdHigh` (persisted to `~/.claude-usage-widget-config.json`).
+- Source files split for maintainability — `Theme.swift`, `BuddyViews.swift`, `OnboardingView.swift` are now siblings of `PopoverContentView.swift` (1840 → ~1290 lines on the main view).
+
+### Internal
+- Build pipeline (`build.sh`) now compiles the additional Swift sources in the Universal Binary lipo step.
+
+---
+
 ## [1.2.0] — 2026-05-28
 
 ### Added

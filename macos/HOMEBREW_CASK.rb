@@ -19,8 +19,8 @@
 #   - OR set up a GitHub Action that auto-PRs on each tag (see actions/cask-updater)
 
 cask "claude-usage-widget" do
-  version "1.1.0"
-  sha256 "7211862dc21935180f976e93b678c34fd948954e7164c0d2e85714c496cad2eb"
+  version "1.3.0"
+  sha256 "0b5d540a60630c070a98a138f827f7f9af86ff7272af8f729dc2e4b63f7eb699"
 
   url "https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v#{version}-macos/ClaudeUsageWidget.dmg",
       verified: "github.com/INNO-HI/ClaudeUsageWidget/"
@@ -40,7 +40,8 @@ cask "claude-usage-widget" do
 
   zap trash: [
     "~/.claude-usage-widget-config.json",
-    "~/.claude-monitor-config.json",   # legacy pre-1.1.0 path
+    "~/.claude-usage-widget-history.json",  # 7-day sparkline history (v1.2.0+)
+    "~/.claude-monitor-config.json",        # legacy pre-1.1.0 path
     "~/Library/Preferences/com.innohi.claudeusagewidget.plist",
     "~/Library/Caches/com.innohi.claudeusagewidget",
   ]

@@ -71,6 +71,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                 }
                 .store(in: &cancellables)
+
+            // Re-evaluate pulse whenever the warning threshold changes
+            viewModel.$alertThresholdLow
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    if let btn = self?.statusItem.button {
+                        self?.updateStatusBarIcon(button: btn)
+                    }
+                }
+                .store(in: &cancellables)
         }
 
         // Reconcile Launch-at-Login flag with actual system state
@@ -112,8 +122,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         button.title = text.isEmpty ? "" : " \(text)"
         button.imagePosition = .imageLeading
 
-        // Manage warning pulse based on threshold
-        let shouldPulse = !syncing && viewModel.usage.isConnected && viewModel.usage.sessionUsagePercent >= 80
+        // Manage warning pulse based on user's low threshold
+        let shouldPulse = !syncing
+            && viewModel.usage.isConnected
+            && viewModel.usage.sessionUsagePercent >= Double(viewModel.alertThresholdLow)
         if shouldPulse {
             startPulseAnimation()
         } else {

@@ -25,19 +25,20 @@ enum MenuBarFormat: String, CaseIterable {
     case both      // "47% · 2h"
 
     var displayName: String {
-        if L.lang == .ko {
-            switch self {
-            case .hidden:  return "숨김"
-            case .percent: return "%"
-            case .time:    return "시간"
-            case .both:    return "%·시간"
-            }
-        }
-        switch self {
-        case .hidden:  return "Off"
-        case .percent: return "%"
-        case .time:    return "Time"
-        case .both:    return "Both"
+        switch (L.lang, self) {
+        case (.ko, .hidden):   return "숨김"
+        case (.ko, .time):     return "시간"
+        case (.ko, .both):     return "%·시간"
+        case (.ja, .hidden):   return "オフ"
+        case (.ja, .time):     return "時間"
+        case (.ja, .both):     return "%·時間"
+        case (.zhCN, .hidden): return "关闭"
+        case (.zhCN, .time):   return "时间"
+        case (.zhCN, .both):   return "%·时间"
+        case (_, .hidden):     return "Off"
+        case (_, .time):       return "Time"
+        case (_, .both):       return "Both"
+        case (_, .percent):    return "%"
         }
     }
 }
@@ -408,6 +409,12 @@ class UsageViewModel: ObservableObject {
             saveConfig()
         }
     }
+    @Published var alertThresholdLow: Int = 80 {
+        didSet { saveConfig() }
+    }
+    @Published var alertThresholdHigh: Int = 90 {
+        didSet { saveConfig() }
+    }
     @Published var showBuddy: Bool = true {
         didSet { saveConfig() }
     }
@@ -419,7 +426,16 @@ class UsageViewModel: ObservableObject {
     }
     @Published var showSettings: Bool = false
     @Published var errorMessage: String? = nil
+    @Published var errorKind: ErrorKind? = nil
     @Published var credentialStatus: CredentialStatus = .checking
+
+    enum ErrorKind {
+        case credentials   // not logged in / token expired
+        case rateLimited   // server told us to slow down
+        case network       // offline / DNS / timeout
+        case server        // generic 5xx
+        case unknown
+    }
     @Published var buddyState: BuddyState = .off
     @Published var buddyMood: Int = 3  // 1~5 hearts
     @Published var buddySpec: BuddySpec? = nil
@@ -445,8 +461,8 @@ class UsageViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var consecutiveFailures: Int = 0  // for exponential backoff
     // Notification de-dupe per session (reset when a new session starts)
-    private var notified80: Bool = false
-    private var notified90: Bool = false
+    private var notifiedLow: Bool = false
+    private var notifiedHigh: Bool = false
     private var lastSessionResetSeconds: Int = 0
 
     init() {
@@ -496,19 +512,32 @@ class UsageViewModel: ObservableObject {
                     self.usage.isConnected = true
                     self.credentialStatus = .found
                     self.errorMessage = nil
+                    self.errorKind = nil
                     self.consecutiveFailures = 0
                     self.recordHistoryPoint()
                     self.evaluateUsageAlerts()
                 case .failure(let error):
                     self.errorMessage = error.localizedDescription
                     self.usage.isConnected = false
-                    // Only back off on transient errors (rate limit / network)
+                    // Classify and back off on transient errors
                     if let svcErr = error as? ClaudeUsageService.ServiceError {
                         switch svcErr {
-                        case .rateLimited, .networkError, .httpError:
+                        case .noCredentials, .unauthorized, .keychainError:
+                            self.errorKind = .credentials
+                        case .rateLimited:
+                            self.errorKind = .rateLimited
                             self.consecutiveFailures = min(self.consecutiveFailures + 1, 4)
-                        default: break
+                        case .networkError:
+                            self.errorKind = .network
+                            self.consecutiveFailures = min(self.consecutiveFailures + 1, 4)
+                        case .httpError:
+                            self.errorKind = .server
+                            self.consecutiveFailures = min(self.consecutiveFailures + 1, 4)
+                        case .parseError:
+                            self.errorKind = .unknown
                         }
+                    } else {
+                        self.errorKind = .unknown
                     }
                 }
                 self.scheduleNextFetch()
@@ -570,26 +599,26 @@ class UsageViewModel: ObservableObject {
     }
 
     /// Detect new sessions (reset counter goes UP, meaning a fresh window started)
-    /// and fire 80%/90% notifications once per session.
+    /// and fire low/high threshold notifications once per session.
     private func evaluateUsageAlerts() {
         // Detect new session — server's resetSeconds jumped up by a meaningful margin.
         // (When time passes, the value naturally decreases; a jump up means session reset.)
         if usage.sessionResetSeconds > lastSessionResetSeconds + 60 {
-            notified80 = false
-            notified90 = false
+            notifiedLow = false
+            notifiedHigh = false
         }
         lastSessionResetSeconds = usage.sessionResetSeconds
 
         guard notificationsEnabled else { return }
 
         let pct = usage.sessionUsagePercent
-        if pct >= 90 && !notified90 {
-            sendUsageNotification(percent: 90, identifier: "session-90")
-            notified90 = true
-            notified80 = true   // suppress 80 if we already crossed 90
-        } else if pct >= 80 && !notified80 {
-            sendUsageNotification(percent: 80, identifier: "session-80")
-            notified80 = true
+        if pct >= Double(alertThresholdHigh) && !notifiedHigh {
+            sendUsageNotification(percent: alertThresholdHigh, identifier: "session-high")
+            notifiedHigh = true
+            notifiedLow = true  // suppress low if we already crossed high
+        } else if pct >= Double(alertThresholdLow) && !notifiedLow {
+            sendUsageNotification(percent: alertThresholdLow, identifier: "session-low")
+            notifiedLow = true
         }
     }
 
@@ -707,10 +736,17 @@ class UsageViewModel: ObservableObject {
         guard let eta = estimatedTimeToLimit else { return nil }
         let h = Int(eta) / 3600
         let m = (Int(eta) % 3600) / 60
-        if L.lang == .ko {
+        switch L.lang {
+        case .ko:
             if h > 0 { return "이 속도면 \(h)시간 \(m)분 후 한도 도달" }
             return "이 속도면 \(m)분 후 한도 도달"
-        } else {
+        case .ja:
+            if h > 0 { return "このペースで \(h) 時間 \(m) 分後に上限" }
+            return "このペースで \(m) 分後に上限"
+        case .zhCN:
+            if h > 0 { return "按当前速度,\(h) 小时 \(m) 分钟后达到上限" }
+            return "按当前速度,\(m) 分钟后达到上限"
+        case .en:
             if h > 0 { return "At this rate: limit in \(h)h \(m)m" }
             return "At this rate: limit in \(m)m"
         }
@@ -909,6 +945,16 @@ class UsageViewModel: ObservableObject {
         if let notif = config["notificationsEnabled"] as? Bool {
             notificationsEnabled = notif
         }
+        if let low = config["alertThresholdLow"] as? Int, (50...95).contains(low) {
+            alertThresholdLow = low
+        }
+        if let high = config["alertThresholdHigh"] as? Int, (60...99).contains(high) {
+            alertThresholdHigh = high
+        }
+        // Keep low < high
+        if alertThresholdLow >= alertThresholdHigh {
+            alertThresholdLow = max(50, alertThresholdHigh - 10)
+        }
         if let buddy = config["showBuddy"] as? Bool {
             showBuddy = buddy
         }
@@ -956,6 +1002,8 @@ class UsageViewModel: ObservableObject {
             "menuBarFormat": menuBarFormat.rawValue,
             "launchAtLogin": launchAtLogin,
             "notificationsEnabled": notificationsEnabled,
+            "alertThresholdLow": alertThresholdLow,
+            "alertThresholdHigh": alertThresholdHigh,
             "showBuddy": showBuddy,
             "compactMode": compactMode,
             "hasCompletedOnboarding": hasCompletedOnboarding,

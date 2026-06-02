@@ -7,6 +7,30 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.3.0</title>
+            <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
+            <sparkle:version>4</sparkle:version>
+            <pubDate>Tue, 02 Jun 2026 18:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Custom thresholds · friendlier errors · JA/ZH · 3-step onboarding</h2>
+                <ul>
+                    <li>Custom alert thresholds — replace fixed 80/90% with two user-tunable sliders</li>
+                    <li>3-step onboarding — intro → login guidance with copy-claude-login → notifications opt-in</li>
+                    <li>Friendly error banner — classified errors with Retry / Open Terminal / Dismiss actions</li>
+                    <li>Japanese (日本語) and Simplified Chinese (中文) localisation added; picker now offers EN / KO / JA / ZH</li>
+                    <li>Menu-bar pulse and session ring glow follow the lower notification threshold automatically</li>
+                    <li>Internal refactor — Theme / BuddyViews / OnboardingView split out as siblings of PopoverContentView (1840 → 1290 lines)</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.3.0-macos/ClaudeUsageWidget.dmg"
+                length="2211184"
+                type="application/octet-stream"
+                sparkle:edSignature="4a64b3/uirv3sQTBnT4zxugBmGosROhLIYxHpNeGFGhmIKeZoIFDUNMkfLHpDtU+V+SEsyjmRCGxcjEg64aaAw==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.2.0</title>
             <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
             <sparkle:version>3</sparkle:version>

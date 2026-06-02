@@ -1,85 +1,6 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Typography (에이투지체 / A2Z)
-
-enum AppFont {
-    static func thin(_ size: CGFloat) -> Font      { Font.custom("A2Z 1 Thin", size: size) }
-    static func light(_ size: CGFloat) -> Font     { Font.custom("A2Z 3 Light", size: size) }
-    static func regular(_ size: CGFloat) -> Font   { Font.custom("A2Z 4 Regular", size: size) }
-    static func medium(_ size: CGFloat) -> Font    { Font.custom("A2Z 5 Medium", size: size) }
-    static func semibold(_ size: CGFloat) -> Font  { Font.custom("A2Z 6 SemiBold", size: size) }
-    static func bold(_ size: CGFloat) -> Font      { Font.custom("A2Z 7 Bold", size: size) }
-    static func extraBold(_ size: CGFloat) -> Font { Font.custom("A2Z 8 ExtraBold", size: size) }
-    static func black(_ size: CGFloat) -> Font     { Font.custom("A2Z 9 Black", size: size) }
-
-    static func mono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        Font.system(size: size, weight: weight, design: .monospaced)
-    }
-}
-
-// MARK: - Color Theme (Light + Dark adaptive)
-
-struct Theme {
-    // Base — adapt to system appearance
-    static let background = Color.dynamic(light: 0xFFFFFF, dark: 0x1C1C1E)
-    // Card surface — sits on popoverBg (#FAFAFA / #1C1C1E)
-    static let surface = Color.dynamic(light: 0xFFFFFF, dark: 0x2C2C2E)
-
-    // Text
-    static let textPrimary = Color.dynamic(light: 0x1F2937, dark: 0xF2F2F7)
-    static let textSecondary = Color.dynamic(light: 0x6B7280, dark: 0xAEAEB2)
-
-    // Status colors (same in both modes — kept readable on glass)
-    static let danger = Color(hex: 0xF87171)       // Soft red
-    static let warning = Color(hex: 0xF59E0B)      // Warm orange
-    static let success = Color(hex: 0x10B981)      // Green
-    static let claudeOrange = Color(hex: 0xD97757) // Claude brand
-
-    // Accent = Claude orange for brand consistency
-    static let accent = Color(hex: 0xD97757)
-    static let accentDim = Color(hex: 0xD97757).opacity(0.6)
-
-    // UI elements
-    static let progressBg = Color.dynamic(light: 0xE5E7EB, dark: 0x3A3A3C)
-    static let border = Color.dynamic(light: 0xE5E7EB, dark: 0x3A3A3C)
-    static let cardBorder = Color.dynamic(light: 0xFFFFFF, dark: 0x48484A).opacity(0.6)
-
-    // Glassmorphism (kept for cards; popover itself uses a solid background)
-    static let glassBg = Color.dynamic(light: 0xFFFFFF, dark: 0x2C2C2E).opacity(0.7)
-    static let glassBorder = Color.dynamic(light: 0xFFFFFF, dark: 0x48484A).opacity(0.5)
-    static let glassShadow = Color.black.opacity(0.04)
-
-    // Solid popover background — off-white in light mode, dark surface in dark mode
-    static let popoverBg = Color.dynamic(light: 0xFAFAFA, dark: 0x1C1C1E)
-}
-
-extension Color {
-    init(hex: UInt, alpha: Double = 1.0) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
-    }
-
-    /// Dynamic color that follows the system appearance (light/dark mode).
-    static func dynamic(light: UInt, dark: UInt) -> Color {
-        Color(NSColor(name: nil) { appearance in
-            let isDark = appearance.bestMatch(from: [.darkAqua, .vibrantDark, .accessibilityHighContrastDarkAqua, .accessibilityHighContrastVibrantDark]) != nil
-            let hex = isDark ? dark : light
-            return NSColor(
-                srgbRed: CGFloat((hex >> 16) & 0xFF) / 255.0,
-                green:   CGFloat((hex >> 8)  & 0xFF) / 255.0,
-                blue:    CGFloat( hex        & 0xFF) / 255.0,
-                alpha: 1.0
-            )
-        })
-    }
-}
-
 // MARK: - Main Popover View
 
 struct PopoverContentView: View {
@@ -106,6 +27,10 @@ struct PopoverContentView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     if viewModel.showSettings {
                         settingsSection
+                    }
+                    if viewModel.errorKind != nil {
+                        ErrorBannerView(viewModel: viewModel)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                     currentSessionSection
                     if !viewModel.compactMode {
@@ -253,6 +178,10 @@ struct PopoverContentView: View {
 
             settingsToggleRow(label: L.enableNotifications, isOn: $viewModel.notificationsEnabled)
 
+            if viewModel.notificationsEnabled {
+                thresholdRow
+            }
+
             // ── Updates ──────────────────────────────
             categoryHeader(L.sectionUpdates, icon: "arrow.triangle.2.circlepath")
 
@@ -320,6 +249,68 @@ struct PopoverContentView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: Settings — Notification thresholds
+
+    private var thresholdRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(L.alertThresholds)
+                    .font(AppFont.regular(11))
+                    .foregroundColor(Theme.textSecondary)
+                Spacer()
+                Text(L.thresholdLabel(low: viewModel.alertThresholdLow, high: viewModel.alertThresholdHigh))
+                    .font(AppFont.bold(11))
+                    .foregroundColor(Theme.claudeOrange)
+            }
+            HStack(spacing: 8) {
+                Text(L.alertLow)
+                    .font(AppFont.regular(10))
+                    .foregroundColor(Theme.textSecondary)
+                    .frame(width: 52, alignment: .leading)
+                Slider(
+                    value: Binding(
+                        get: { Double(viewModel.alertThresholdLow) },
+                        set: { newVal in
+                            let low = Int(newVal.rounded())
+                            viewModel.alertThresholdLow = low
+                            if viewModel.alertThresholdHigh <= low {
+                                viewModel.alertThresholdHigh = min(99, low + 5)
+                            }
+                        }
+                    ),
+                    in: 50...95,
+                    step: 5
+                )
+                .tint(Theme.claudeOrange)
+                .accessibilityLabel("\(L.alertLow) \(viewModel.alertThresholdLow)%")
+            }
+            HStack(spacing: 8) {
+                Text(L.alertHigh)
+                    .font(AppFont.regular(10))
+                    .foregroundColor(Theme.textSecondary)
+                    .frame(width: 52, alignment: .leading)
+                Slider(
+                    value: Binding(
+                        get: { Double(viewModel.alertThresholdHigh) },
+                        set: { newVal in
+                            let high = Int(newVal.rounded())
+                            viewModel.alertThresholdHigh = high
+                            if viewModel.alertThresholdLow >= high {
+                                viewModel.alertThresholdLow = max(50, high - 5)
+                            }
+                        }
+                    ),
+                    in: 60...99,
+                    step: 5
+                )
+                .tint(Theme.danger)
+                .accessibilityLabel("\(L.alertHigh) \(viewModel.alertThresholdHigh)%")
+            }
+        }
+        .padding(.leading, 16)
+        .padding(.top, -2)
     }
 
     // MARK: Settings — Menu bar format picker
@@ -461,7 +452,8 @@ struct PopoverContentView: View {
                     percent: viewModel.usage.sessionUsagePercent,
                     color: percentColor(viewModel.usage.sessionUsagePercent),
                     isLoading: viewModel.isSyncing && !viewModel.usage.isConnected,
-                    isDisconnected: !viewModel.usage.isConnected && !viewModel.isSyncing
+                    isDisconnected: !viewModel.usage.isConnected && !viewModel.isSyncing,
+                    pulseThreshold: Double(viewModel.alertThresholdLow)
                 )
                 .frame(width: viewModel.compactMode ? 72 : 92,
                        height: viewModel.compactMode ? 72 : 92)
@@ -641,7 +633,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.2.0")
+            Text("v1.3.0")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -749,469 +741,99 @@ struct PopoverContentView: View {
     }
 }
 
-// MARK: - Buddy Egg View (off / hatching states)
 
-struct BuddyEggView: View {
-    let state: BuddyState
-    @State private var animPhase: CGFloat = 0
+// MARK: - Error Banner (friendly recovery surface)
+
+struct ErrorBannerView: View {
+    @ObservedObject var viewModel: UsageViewModel
+
+    private var spec: (icon: String, color: Color, title: String, body: String) {
+        switch viewModel.errorKind ?? .unknown {
+        case .credentials: return ("person.crop.circle.badge.exclamationmark", Theme.danger,  L.errorCredentialsTitle, L.errorCredentialsBody)
+        case .rateLimited: return ("hourglass.tophalf.filled",                 Theme.warning, L.errorRateTitle,        L.errorRateBody)
+        case .network:     return ("wifi.exclamationmark",                     Theme.warning, L.errorNetworkTitle,     L.errorNetworkBody)
+        case .server:      return ("server.rack",                              Theme.warning, L.errorServerTitle,      L.errorServerBody)
+        case .unknown:     return ("exclamationmark.triangle.fill",            Theme.danger,  L.errorUnknownTitle,     viewModel.errorMessage ?? "")
+        }
+    }
 
     var body: some View {
-        ZStack {
-            if state == .off {
-                VStack(spacing: 6) {
-                    Text("  _____\n /     \\\n|  ???  |\n \\_____/")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(Theme.textSecondary.opacity(0.4))
-                        .multilineTextAlignment(.center)
-                    Text("Hatch your buddy!")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundColor(Theme.textSecondary)
-                }
-            } else {
-                Text("  _____\n /     \\\n| *  * |\n \\_____/")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(Theme.claudeOrange)
-                    .multilineTextAlignment(.center)
-                    .rotationEffect(.degrees(animPhase))
-                    .onAppear {
-                        withAnimation(.easeInOut(duration: 0.15).repeatCount(10, autoreverses: true)) {
-                            animPhase = 5
-                        }
-                    }
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: spec.icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(spec.color)
+                .frame(width: 28, height: 28)
+                .padding(.top, 2)
 
-// MARK: - Rarity Color Helper
-
-func rarityColor(_ rarity: BuddyRarity) -> Color {
-    switch rarity {
-    case .common:    return Color.gray
-    case .uncommon:  return Color(hex: 0x10B981)
-    case .rare:      return Color(hex: 0x3B82F6)
-    case .epic:      return Color(hex: 0x8B5CF6)
-    case .legendary: return Color(hex: 0xF59E0B)
-    }
-}
-
-// MARK: - ASCII Art Species
-
-func asciiArt(for species: BuddySpecies, eyes: String, hat: BuddyHat) -> String {
-    let e = eyes
-    let hatLine: String = {
-        switch hat {
-        case .none:      return ""
-        case .crown:     return "  \\|/\n"
-        case .tophat:    return "  ___\n  |_|\n"
-        case .propeller: return "  -+- \n"
-        case .halo:      return "  ooo\n"
-        case .wizard:    return "  /\\\n / \\\n"
-        case .beanie:    return "  .-.\n"
-        case .tinyduck:  return "  >o)\n"
-        }
-    }()
-
-    let body: String = {
-        switch species {
-        case .cat:
-            return " /\\_/\\\n( \(e) \(e) )\n > ^ <"
-        case .rabbit:
-            return " (\\(\\  \n ( \(e)\(e) )\n o(\")(\") "
-        case .duck:
-            return "   __\n >(\(e)\(e))__\n  (  __)>\n   ||"
-        case .dragon:
-            return "  /\\_/\\_\n (  \(e) \(e) )\n  \\ ~~ /\n  /|  |\\"
-        case .owl:
-            return "  {o,o}\n /)___)\n  \" \""
-        case .penguin:
-            return "   _\n  (\(e)\(e))\n /( oo )\\\n  \" \""
-        case .ghost:
-            return "  .___.\n | \(e) \(e) |\n |  o  |\n  \\^^^/"
-        case .octopus:
-            return "   ___\n  (\(e) \(e))\n /||||||\\"
-        case .turtle:
-            return "     __\n  .-(\(e)\(e))\n /   ____\\\n|_\\_/____/"
-        case .snail:
-            return "    @  @\n  _(\(e)  \(e))_\n (________)"
-        case .mushroom:
-            return "  .--.\n / \(e)\(e) \\\n|------|\n  ||||"
-        case .robot:
-            return " [====]\n |\(e)  \(e)|\n |_--_|\n  d  b"
-        case .goose:
-            return "   ,\n  (\(e)>\n  / |\n _/ /"
-        case .cactus:
-            return "  _\n | |\n/|\(e)|\\\n | |\n |_|"
-        case .axolotl:
-            return " \\(\(e) \(e))/\n  (  u  )\n  /| | |\\"
-        case .blob:
-            return "  .oOo.\n ( \(e) \(e) )\n  `oOo'"
-        case .capybara:
-            return "  ____\n (\(e)  \(e))\n (    )\n /|  |\\"
-        case .chonk:
-            return " /\\_/\\\n( \(e) \(e) )\n(  >o< )\n (     )"
-        }
-    }()
-
-    return hatLine + body
-}
-
-// MARK: - Full Buddy Card View (ASCII Art)
-
-struct BuddyCardView: View {
-    let spec: BuddySpec
-    let state: BuddyState
-    let mood: Int
-    let bonusStats: [Int]
-    let canFeed: Bool
-    let onPet: () -> Void
-    let onFeed: () -> Void
-    let onSleep: () -> Void
-
-    @State private var animPhase: CGFloat = 0
-    @State private var shinyPhase: Double = 0
-
-    var body: some View {
-        VStack(spacing: 10) {
-            buddyAsciiSection
-            buddyInfoSection
-            buddyStatsSection
-            buddyControlsSection
-        }
-        .onChange(of: state) { _ in
-            animPhase = 0
-        }
-    }
-
-    // MARK: - ASCII Avatar
-
-    private var buddyAsciiSection: some View {
-        ZStack {
-            // Shiny glow
-            if spec.isShiny {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(
-                        RadialGradient(
-                            gradient: Gradient(colors: [
-                                Color.yellow.opacity(0.15 + 0.1 * sin(shinyPhase)),
-                                Color.clear
-                            ]),
-                            center: .center,
-                            startRadius: 5,
-                            endRadius: 60
-                        )
-                    )
-                    .frame(height: 90)
-                    .onAppear {
-                        withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                            shinyPhase = .pi
-                        }
-                    }
-            }
-
-            VStack(spacing: 0) {
-                asciiAnimated
-                    .frame(height: 80)
-
-                // Shadow line
-                Text("~~~~~~~~")
-                    .font(.system(size: 8, design: .monospaced))
-                    .foregroundColor(Theme.textSecondary.opacity(0.2))
-            }
-
-            // State decorations (ASCII style)
-            if state == .happy {
-                Text("*")
-                    .font(.system(size: 16, weight: .bold, design: .monospaced))
-                    .foregroundColor(Theme.claudeOrange)
-                    .offset(x: -50, y: -20)
-                Text("<3")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundColor(Theme.danger)
-                    .offset(x: 50, y: -25)
-            }
-
-            if state == .working {
-                Text("[...]")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundColor(Theme.textSecondary)
-                    .offset(x: 50, y: -20)
-            }
-
-            if state == .sleepy {
-                Text("z Z z")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundColor(Theme.textSecondary.opacity(0.6))
-                    .offset(x: 45, y: -25)
-            }
-
-            if spec.isShiny {
-                Text("*")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(Color.yellow)
-                    .offset(x: -55, y: -30)
-                Text("*")
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundColor(Color.yellow)
-                    .offset(x: 55, y: -10)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var asciiAnimated: some View {
-        let art = asciiArt(for: spec.species, eyes: spec.eyes, hat: spec.hat)
-        return Group {
-            switch state {
-            case .idle:
-                Text(art)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(Theme.claudeOrange)
-                    .multilineTextAlignment(.center)
-                    .offset(y: animPhase)
-                    .onAppear {
-                        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                            animPhase = -3
-                        }
-                    }
-            case .happy:
-                Text(art)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(Theme.claudeOrange)
-                    .multilineTextAlignment(.center)
-                    .offset(y: animPhase)
-                    .onAppear {
-                        withAnimation(.easeInOut(duration: 0.2).repeatForever(autoreverses: true)) {
-                            animPhase = -6
-                        }
-                    }
-            case .working:
-                Text(art)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(Theme.claudeOrange.opacity(0.7))
-                    .multilineTextAlignment(.center)
-                    .offset(x: animPhase)
-                    .onAppear {
-                        withAnimation(.easeInOut(duration: 0.4).repeatForever(autoreverses: true)) {
-                            animPhase = 2
-                        }
-                    }
-            case .sleepy:
-                Text(art)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(Theme.claudeOrange.opacity(0.35))
-                    .multilineTextAlignment(.center)
-                    .rotationEffect(.degrees(animPhase))
-                    .onAppear {
-                        withAnimation(.easeIn(duration: 1.0)) {
-                            animPhase = -10
-                        }
-                    }
-            default:
-                Text(art)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(Theme.claudeOrange)
-                    .multilineTextAlignment(.center)
-            }
-        }
-    }
-
-    // MARK: - Info
-
-    private var buddyInfoSection: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                if spec.isShiny {
-                    Text("*")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundColor(.yellow)
-                }
-                Text(spec.name)
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+            VStack(alignment: .leading, spacing: 6) {
+                Text(spec.title)
+                    .font(AppFont.bold(12))
                     .foregroundColor(Theme.textPrimary)
-                if spec.isShiny {
-                    Text("*")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundColor(.yellow)
-                }
-            }
 
-            HStack(spacing: 6) {
-                Text(spec.species.displayName)
-                    .font(.system(size: 10, design: .monospaced))
+                Text(spec.body)
+                    .font(AppFont.regular(10))
                     .foregroundColor(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                Text("[\(spec.eyes)]")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(Theme.textSecondary)
-
-                Text(spec.rarity.displayName)
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(rarityColor(spec.rarity))
-                    .cornerRadius(4)
-            }
-        }
-    }
-
-    // MARK: - Stats (ASCII bar)
-
-    private var buddyStatsSection: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            ForEach(0..<5) { i in
-                BuddyStatBar(
-                    name: BuddyStats.statNames[i],
-                    value: spec.stats.asArray[i],
-                    bonus: bonusStats[i],
-                    rarity: spec.rarity
-                )
-            }
-        }
-        .padding(.top, 2)
-    }
-
-    // MARK: - Controls
-
-    private var buddyControlsSection: some View {
-        VStack(spacing: 6) {
-            // Mood hearts (ASCII)
-            Text(String(repeating: "<3 ", count: mood) + String(repeating: ".. ", count: 5 - mood))
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundColor(Theme.danger)
-
-            // Tip text
-            Text(buddyTip)
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundColor(Theme.textSecondary.opacity(0.6))
-                .multilineTextAlignment(.center)
-
-            if state == .idle || state == .happy {
-                HStack(spacing: 6) {
-                    Button(action: onPet) {
-                        Text("/buddy pet")
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundColor(Theme.claudeOrange)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(Theme.claudeOrange.opacity(0.1))
-                            .cornerRadius(6)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .stroke(Theme.claudeOrange.opacity(0.3), lineWidth: 1)
-                            )
+                HStack(spacing: 8) {
+                    if viewModel.errorKind == .credentials {
+                        actionButton(L.openTerminal, icon: "terminal", color: Theme.claudeOrange) {
+                            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Terminal") {
+                                NSWorkspace.shared.openApplication(at: url, configuration: .init(), completionHandler: nil)
+                            }
+                        }
                     }
-                    .buttonStyle(.plain)
 
-                    Button(action: onFeed) {
-                        Text("/buddy feed")
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundColor(canFeed ? Theme.success : Theme.textSecondary.opacity(0.4))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(canFeed ? Theme.success.opacity(0.1) : Theme.textSecondary.opacity(0.04))
-                            .cornerRadius(6)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .stroke(canFeed ? Theme.success.opacity(0.3) : Theme.border.opacity(0.3), lineWidth: 1)
-                            )
+                    actionButton(L.retryNow, icon: "arrow.clockwise", color: Theme.claudeOrange) {
+                        viewModel.checkCredentials()
+                        viewModel.fetchUsage()
                     }
-                    .buttonStyle(.plain)
-                    .disabled(!canFeed)
 
-                    Button(action: onSleep) {
-                        Text("/buddy off")
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    Spacer()
+
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.errorKind = nil
+                            viewModel.errorMessage = nil
+                        }
+                    }) {
+                        Text(L.dismissError)
+                            .font(AppFont.semibold(10))
                             .foregroundColor(Theme.textSecondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(Theme.textSecondary.opacity(0.08))
-                            .cornerRadius(6)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .stroke(Theme.border, lineWidth: 1)
-                                )
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(L.dismissError)
                 }
+                .padding(.top, 2)
             }
         }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(spec.color.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(spec.color.opacity(0.35), lineWidth: 1)
+        )
     }
 
-    private var buddyTip: String {
-        if L.lang == .ko {
-            if mood == 0 { return "!! 배고파요... 능력치가 떨어지고 있어요" }
-            if mood < 2 { return "tip: 밥 주면 능력치가 올라가요 (하루 1회)" }
-            if !canFeed { return "tip: 오늘 밥은 먹었어요. 내일 또 주세요~" }
-            if state == .happy { return "냠냠! 맛있다~ 고마워요!" }
-            return "tip: /buddy feed 로 밥을 주세요"
-        } else {
-            if mood == 0 { return "!! hungry... stats are dropping" }
-            if mood < 2 { return "tip: feed me to boost stats (1x/day)" }
-            if !canFeed { return "tip: already fed today. come back tomorrow~" }
-            if state == .happy { return "yum! delicious~ thank you!" }
-            return "tip: /buddy feed to boost a random stat"
-        }
-    }
-}
-
-// MARK: - Buddy Stat Bar (Graph)
-
-struct BuddyStatBar: View {
-    let name: String
-    let value: Int
-    let bonus: Int
-    let rarity: BuddyRarity
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(name)
-                .font(.system(size: 7, weight: .bold, design: .monospaced))
-                .foregroundColor(Theme.textSecondary)
-                .frame(width: 58, alignment: .trailing)
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2.5)
-                        .fill(Theme.progressBg.opacity(0.4))
-                        .frame(height: 6)
-
-                    // Base stat
-                    RoundedRectangle(cornerRadius: 2.5)
-                        .fill(rarityColor(rarity).opacity(0.8))
-                        .frame(
-                            width: max(3, geometry.size.width * CGFloat(min(value + bonus, 15)) / 15.0),
-                            height: 6
-                        )
-
-                    // Bonus overlay (brighter)
-                    if bonus > 0 {
-                        RoundedRectangle(cornerRadius: 2.5)
-                            .fill(Theme.success.opacity(0.9))
-                            .frame(
-                                width: max(3, geometry.size.width * CGFloat(bonus) / 15.0),
-                                height: 6
-                            )
-                            .offset(x: geometry.size.width * CGFloat(value) / 15.0)
-                    }
-                }
+    private func actionButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon).font(.system(size: 10, weight: .semibold))
+                Text(title).font(AppFont.semibold(10))
             }
-            .frame(height: 6)
-
-            HStack(spacing: 1) {
-                Text("\(value)")
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundColor(Theme.textPrimary)
-                if bonus > 0 {
-                    Text("+\(bonus)")
-                        .font(.system(size: 7, weight: .bold, design: .monospaced))
-                        .foregroundColor(Theme.success)
-                }
-            }
-            .frame(width: 30, alignment: .leading)
+            .foregroundColor(color)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(color.opacity(0.12))
+            .cornerRadius(6)
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }
 
@@ -1576,121 +1198,6 @@ func createMenuBarIcon(size: NSSize = NSSize(width: 18, height: 18), percent: Do
     return image
 }
 
-// MARK: - Onboarding (first-run welcome screen)
-
-struct OnboardingView: View {
-    @ObservedObject var viewModel: UsageViewModel
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var heroPulse: Double = 0
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Hero — animated ring preview at 42%
-            ZStack {
-                Circle()
-                    .stroke(Theme.progressBg, lineWidth: 6)
-                    .frame(width: 64, height: 64)
-                Circle()
-                    .trim(from: 0, to: 0.42)
-                    .stroke(Theme.claudeOrange, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .frame(width: 64, height: 64)
-                ClaudeCodeIconView()
-                    .frame(width: 26, height: 26)
-                    .scaleEffect(1.0 + heroPulse * 0.04)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.top, 4)
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                    heroPulse = 1.0
-                }
-            }
-            .accessibilityHidden(true)
-
-            VStack(spacing: 4) {
-                Text(L.welcomeTitle)
-                    .font(AppFont.bold(16))
-                    .foregroundColor(Theme.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(L.welcomeBody1)
-                    .font(AppFont.regular(11))
-                    .foregroundColor(Theme.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity)
-
-            VStack(alignment: .leading, spacing: 10) {
-                stepRow(number: 1, icon: "terminal", text: L.welcomeStep1)
-                stepRow(number: 2, icon: "checkmark.shield", text: L.welcomeStep2)
-                stepRow(number: 3, icon: "gearshape", text: L.welcomeStep3)
-            }
-            .padding(12)
-            .background(Theme.surface)
-            .cornerRadius(10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10).stroke(Theme.border, lineWidth: 1)
-            )
-
-            HStack {
-                Spacer()
-                Button(action: { viewModel.hasCompletedOnboarding = true }) {
-                    HStack(spacing: 6) {
-                        Text(L.getStarted)
-                            .font(AppFont.bold(12))
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 11))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 9)
-                    .background(
-                        LinearGradient(
-                            colors: [Theme.claudeOrange, Theme.claudeOrange.opacity(0.85)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .cornerRadius(9)
-                    .shadow(color: Theme.claudeOrange.opacity(0.3), radius: 6, y: 2)
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut(.defaultAction)
-                .accessibilityLabel(L.getStarted)
-                Spacer()
-            }
-            .padding(.top, 2)
-        }
-        .padding(20)
-    }
-
-    @ViewBuilder
-    private func stepRow(number: Int, icon: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Text("\(number)")
-                .font(AppFont.bold(11))
-                .foregroundColor(.white)
-                .frame(width: 18, height: 18)
-                .background(Theme.claudeOrange)
-                .clipShape(Circle())
-
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 11))
-                    .foregroundColor(Theme.claudeOrange)
-                Text(text)
-                    .font(AppFont.regular(11))
-                    .foregroundColor(Theme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-}
-
 // MARK: - Session Ring (circular progress with center label)
 
 struct SessionRingView: View {
@@ -1698,6 +1205,7 @@ struct SessionRingView: View {
     let color: Color
     var isLoading: Bool = false
     var isDisconnected: Bool = false
+    var pulseThreshold: Double = 80
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulsePhase: Double = 0
@@ -1709,7 +1217,7 @@ struct SessionRingView: View {
     }
 
     private var shouldPulse: Bool {
-        !reduceMotion && percent >= 80 && !isLoading && !isDisconnected
+        !reduceMotion && percent >= pulseThreshold && !isLoading && !isDisconnected
     }
 
     var body: some View {

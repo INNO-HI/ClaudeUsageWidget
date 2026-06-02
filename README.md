@@ -204,7 +204,15 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.2.0 (latest)
+### v1.3.0 (latest)
+- Added **Custom alert thresholds** — two sliders replace fixed 80/90%
+- Added **3-step onboarding** with `claude login` copy button + notifications opt-in
+- Added **Friendly error banner** (credentials / rate-limit / network / server) with Retry & Open Terminal
+- Added **Japanese (日本語) and Simplified Chinese (中文)** localisation — picker now EN / KO / JA / ZH
+- Pulse + ring glow now follow the user's lower notification threshold
+- Internal refactor: `Theme.swift`, `BuddyViews.swift`, `OnboardingView.swift` split out
+
+### v1.2.0
 - Added **Burn-rate ETA** — predicts when the session limit will be hit
 - Added **7-day Sparkline** trend in the Weekly Limits card
 - Added **Menu Bar Text format** — Off / `%` / Time / Both

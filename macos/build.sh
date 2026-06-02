@@ -64,6 +64,9 @@ SWIFT_SOURCES=(
     Sources/Models.swift
     Sources/EventMonitor.swift
     Sources/UsageService.swift
+    Sources/Theme.swift
+    Sources/BuddyViews.swift
+    Sources/OnboardingView.swift
     Sources/PopoverContentView.swift
     Sources/AppDelegate.swift
     Sources/main.swift
