@@ -3,7 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Claude Usage Widget</title>
+  <title>Claude Usage Widget — real-time Claude Code usage in your menu bar</title>
+  <meta name="description" content="Native macOS menu-bar widget for Claude Code with burn-rate ETA, 7-day sparkline, custom alert thresholds, CSV/JSON export, and 4-language localisation (EN/KO/JA/ZH). Universal Binary, signed & notarized, auto-updates via Sparkle.">
+  <meta name="keywords" content="Claude Code, Claude Usage, menu bar, macOS, Anthropic, OAuth, Sparkle, widget, monitor, productivity">
+  <meta name="author" content="INNO-HI Inc.">
+  <link rel="canonical" href="https://inno-hi.github.io/ClaudeUsageWidget/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Claude Usage Widget">
+  <meta property="og:description" content="Real-time Claude Code usage in your macOS menu bar. Burn-rate ETA, 7-day sparkline, custom alerts, CSV/JSON export, 4 languages.">
+  <meta property="og:url" content="https://inno-hi.github.io/ClaudeUsageWidget/">
+  <meta property="og:image" content="https://inno-hi.github.io/ClaudeUsageWidget/screenshots/10-desktop-widget-crop.png">
+  <meta property="og:image:alt" content="Claude Usage Widget showing session ring and weekly sparkline">
+  <meta property="og:site_name" content="Claude Usage Widget">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Claude Usage Widget">
+  <meta name="twitter:description" content="Real-time Claude Code usage in your macOS menu bar — ETA, sparkline, custom alerts, CSV export, 4 languages.">
+  <meta name="twitter:image" content="https://inno-hi.github.io/ClaudeUsageWidget/screenshots/10-desktop-widget-crop.png">
+
+  <meta name="theme-color" content="#D97757">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -683,7 +704,7 @@
     </svg>
 
     <h1 data-i18n="hero.title">Claude Usage Widget</h1>
-    <p data-i18n="hero.subtitle">Track your Claude Code usage in real-time. Glassmorphism desktop widget for macOS & Windows.</p>
+    <p data-i18n="hero.subtitle">Track Claude Code usage in real time with burn-rate ETA, 7-day sparkline, and custom alerts. Native menu-bar app for macOS, web widget for Windows & Linux.</p>
 
     <div class="hero-buttons">
       <a href="#download" class="btn btn-primary">
@@ -902,7 +923,37 @@
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#128203;</span>
         <h3 data-i18n="features.realtime.title">Real-time Usage</h3>
-        <p data-i18n="features.realtime.desc">Monitor your 5-hour session and 7-day weekly limits at a glance.</p>
+        <p data-i18n="features.realtime.desc">Monitor your 5-hour session and 7-day weekly limits at a glance — with a spring-animated session ring.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#9889;</span>
+        <h3 data-i18n="features.eta.title">Burn-rate ETA</h3>
+        <p data-i18n="features.eta.desc">Predicts when you'll hit the session limit at your current pace, so you can pause before running out.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#128200;</span>
+        <h3 data-i18n="features.sparkline.title">7-day Sparkline</h3>
+        <p data-i18n="features.sparkline.desc">A weekly trend strip on the Weekly Limits card. History is saved locally and exportable.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#128276;</span>
+        <h3 data-i18n="features.alerts.title">Custom Usage Alerts</h3>
+        <p data-i18n="features.alerts.desc">Two sliders let you set the warning thresholds yourself. The menu-bar icon pulses when you cross the lower one.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#128270;</span>
+        <h3 data-i18n="features.tooltip.title">Rich Menu Tooltip</h3>
+        <p data-i18n="features.tooltip.desc">Hover the menu-bar icon to see your %, ETA, weekly usage, and last sync — without opening the popover.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#128229;</span>
+        <h3 data-i18n="features.export.title">CSV / JSON Export</h3>
+        <p data-i18n="features.export.desc">Export your 7-day usage history (Settings → Data) for analysis in spreadsheets or notebooks.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#128100;</span>
+        <h3 data-i18n="features.multiAccount.title">Multi-account</h3>
+        <p data-i18n="features.multiAccount.desc">Point the widget at a non-default <code>~/.claude/.credentials.json</code> to monitor a second account.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#128259;</span>
@@ -912,22 +963,12 @@
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#128187;</span>
         <h3 data-i18n="features.universal.title">Universal Binary</h3>
-        <p data-i18n="features.universal.desc">Runs natively on both Apple Silicon and Intel Macs.</p>
-      </div>
-      <div class="feature-card fade-up">
-        <span class="feature-emoji">&#128276;</span>
-        <h3 data-i18n="features.alerts.title">Usage Alerts</h3>
-        <p data-i18n="features.alerts.desc">Optional macOS notifications when you reach 80% or 90% of your session.</p>
+        <p data-i18n="features.universal.desc">Runs natively on both Apple Silicon and Intel Macs. macOS 13+.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#127769;</span>
         <h3 data-i18n="features.darkmode.title">Light &amp; Dark</h3>
-        <p data-i18n="features.darkmode.desc">Adaptive theme that follows your system appearance, with high-contrast text on glass.</p>
-      </div>
-      <div class="feature-card fade-up">
-        <span class="feature-emoji">&#127912;</span>
-        <h3 data-i18n="features.glass.title">Glassmorphism UI</h3>
-        <p data-i18n="features.glass.desc">Beautiful frosted glass design with smooth animations and hover effects.</p>
+        <p data-i18n="features.darkmode.desc">Solid off-white surface in light mode, dark surface in dark mode — both wrapped in 에이투지체 (A2Z) typography.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#128274;</span>
@@ -937,7 +978,7 @@
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#128260;</span>
         <h3 data-i18n="features.sync.title">Auto Sync</h3>
-        <p data-i18n="features.sync.desc">Configurable auto-refresh: 5m, 10m, 30m, 1h, or manual.</p>
+        <p data-i18n="features.sync.desc">Configurable auto-refresh: 1m, 5m, 10m, 30m, 1h, or manual. Plus ±10% jitter + exponential backoff.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#127760;</span>
@@ -945,9 +986,14 @@
         <p data-i18n="features.cross.desc">Native Swift on macOS, Node.js web widget on Windows & Linux.</p>
       </div>
       <div class="feature-card fade-up">
-        <span class="feature-emoji">&#127468;&#127463;</span>
-        <h3 data-i18n="features.bilingual.title">Bilingual</h3>
-        <p data-i18n="features.bilingual.desc">English and Korean language support built-in.</p>
+        <span class="feature-emoji">&#127760;</span>
+        <h3 data-i18n="features.multilang.title">4 Languages</h3>
+        <p data-i18n="features.multilang.desc">English · 한국어 · 日本語 · 中文 — switch instantly inside Settings.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <span class="feature-emoji">&#9863;&#65039;</span>
+        <h3 data-i18n="features.a11y.title">Accessibility</h3>
+        <p data-i18n="features.a11y.desc">VoiceOver labels on every control, ⌘R / ⌘Q / ⌘, shortcuts, and full Reduce Motion support.</p>
       </div>
       <div class="feature-card fade-up">
         <span class="feature-emoji">&#128054;</span>
@@ -971,7 +1017,7 @@
     const i18n = {
       en: {
         'hero.title': 'Claude Usage Widget',
-        'hero.subtitle': 'Track your Claude Code usage in real-time. Glassmorphism desktop widget for macOS & Windows.',
+        'hero.subtitle': 'Track Claude Code usage in real time with burn-rate ETA, 7-day sparkline, and custom alerts. Native menu-bar app for macOS, web widget for Windows & Linux.',
         'hero.download': 'Download',
         'hero.blog': 'Blog',
         'buddy.title': 'Claude Code Buddy',
@@ -997,31 +1043,41 @@
         'download.win.btn': 'Download for Windows',
         'features.title': 'Features',
         'features.realtime.title': 'Real-time Usage',
-        'features.realtime.desc': 'Monitor your 5-hour session and 7-day weekly limits at a glance.',
+        'features.realtime.desc': 'Monitor your 5-hour session and 7-day weekly limits at a glance — with a spring-animated session ring.',
+        'features.eta.title': 'Burn-rate ETA',
+        'features.eta.desc': "Predicts when you'll hit the session limit at your current pace, so you can pause before running out.",
+        'features.sparkline.title': '7-day Sparkline',
+        'features.sparkline.desc': 'A weekly trend strip on the Weekly Limits card. History is saved locally and exportable.',
+        'features.alerts.title': 'Custom Usage Alerts',
+        'features.alerts.desc': 'Two sliders let you set the warning thresholds yourself. The menu-bar icon pulses when you cross the lower one.',
+        'features.tooltip.title': 'Rich Menu Tooltip',
+        'features.tooltip.desc': 'Hover the menu-bar icon to see your %, ETA, weekly usage, and last sync — without opening the popover.',
+        'features.export.title': 'CSV / JSON Export',
+        'features.export.desc': 'Export your 7-day usage history (Settings → Data) for analysis in spreadsheets or notebooks.',
+        'features.multiAccount.title': 'Multi-account',
+        'features.multiAccount.desc': 'Point the widget at a non-default ~/.claude/.credentials.json to monitor a second account.',
         'features.autoupdate.title': 'Auto-Update',
         'features.autoupdate.desc': 'Sparkle-powered, EdDSA-signed updates delivered straight inside the app.',
         'features.universal.title': 'Universal Binary',
-        'features.universal.desc': 'Runs natively on both Apple Silicon and Intel Macs.',
-        'features.alerts.title': 'Usage Alerts',
-        'features.alerts.desc': 'Optional macOS notifications when you reach 80% or 90% of your session.',
+        'features.universal.desc': 'Runs natively on both Apple Silicon and Intel Macs. macOS 13+.',
         'features.darkmode.title': 'Light & Dark',
-        'features.darkmode.desc': 'Adaptive theme that follows your system appearance, with high-contrast text on glass.',
-        'features.glass.title': 'Glassmorphism UI',
-        'features.glass.desc': 'Beautiful frosted glass design with smooth animations and hover effects.',
+        'features.darkmode.desc': 'Solid off-white surface in light mode, dark surface in dark mode — both wrapped in 에이투지체 (A2Z) typography.',
         'features.zero.title': 'Zero Token Cost',
         'features.zero.desc': 'Uses OAuth usage API only. No Claude messages sent, no tokens consumed.',
         'features.sync.title': 'Auto Sync',
-        'features.sync.desc': 'Configurable auto-refresh: 5m, 10m, 30m, 1h, or manual.',
+        'features.sync.desc': 'Configurable auto-refresh: 1m, 5m, 10m, 30m, 1h, or manual. Plus ±10% jitter + exponential backoff.',
         'features.cross.title': 'Cross Platform',
         'features.cross.desc': 'Native Swift on macOS, Node.js web widget on Windows & Linux.',
-        'features.bilingual.title': 'Bilingual',
-        'features.bilingual.desc': 'English and Korean language support built-in.',
+        'features.multilang.title': '4 Languages',
+        'features.multilang.desc': 'English · 한국어 · 日本語 · 中文 — switch instantly inside Settings.',
+        'features.a11y.title': 'Accessibility',
+        'features.a11y.desc': 'VoiceOver labels on every control, ⌘R / ⌘Q / ⌘, shortcuts, and full Reduce Motion support.',
         'features.buddy.title': 'Claude Code Buddy',
         'features.buddy.desc': 'Adopt a terminal pet with ASCII art. 18 species, 5 rarity tiers, and a 1% shiny chance.',
       },
       ko: {
         'hero.title': 'Claude Usage Widget',
-        'hero.subtitle': 'Claude Code 사용량을 실시간으로 추적하세요. macOS & Windows용 글래스모피즘 데스크톱 위젯.',
+        'hero.subtitle': 'Claude Code 사용량을 실시간 추적 · 한도 도달 ETA · 7일 스파크라인 · 사용자 정의 알림. macOS 네이티브 메뉴바 앱, Windows & Linux는 웹 위젯.',
         'hero.download': '다운로드',
         'hero.blog': '블로그',
         'buddy.title': 'Claude Code 버디',
@@ -1047,25 +1103,35 @@
         'download.win.btn': 'Windows용 다운로드',
         'features.title': '기능',
         'features.realtime.title': '실시간 사용량',
-        'features.realtime.desc': '5시간 세션과 7일 주간 한도를 한눈에 모니터링하세요.',
+        'features.realtime.desc': '5시간 세션과 7일 주간 한도를 한눈에 모니터링 — 스프링 애니메이션 세션 링.',
+        'features.eta.title': '한도 도달 ETA',
+        'features.eta.desc': '현재 속도 기준 한도 도달 시각을 예측해 미리 멈출 수 있게 알려줍니다.',
+        'features.sparkline.title': '7일 스파크라인',
+        'features.sparkline.desc': '주간 사용량 카드에 7일 흐름 그래프. 로컬 저장 + 내보내기 가능.',
+        'features.alerts.title': '사용자 정의 알림',
+        'features.alerts.desc': '두 개의 슬라이더로 직접 임계치 설정. 하한 도달 시 메뉴바 아이콘이 호흡합니다.',
+        'features.tooltip.title': '메뉴바 툴팁',
+        'features.tooltip.desc': '메뉴바 아이콘에 마우스만 올려도 %, ETA, 주간 사용량, 마지막 동기화를 확인.',
+        'features.export.title': 'CSV / JSON 내보내기',
+        'features.export.desc': '7일 사용량 기록을 CSV 또는 JSON으로 내보내 분석 도구에 활용하세요 (Settings → Data).',
+        'features.multiAccount.title': '다중 계정',
+        'features.multiAccount.desc': '기본 외 ~/.claude/.credentials.json 경로를 지정해 다른 계정도 모니터링.',
         'features.autoupdate.title': '자동 업데이트',
         'features.autoupdate.desc': 'Sparkle 기반 EdDSA 서명 업데이트를 앱 안에서 바로 받습니다.',
         'features.universal.title': '유니버설 바이너리',
-        'features.universal.desc': 'Apple Silicon과 Intel Mac 모두에서 네이티브 실행됩니다.',
-        'features.alerts.title': '사용량 알림',
-        'features.alerts.desc': '세션의 80% / 90% 도달 시 macOS 알림을 받을 수 있습니다.',
+        'features.universal.desc': 'Apple Silicon과 Intel Mac 모두에서 네이티브 실행. macOS 13+.',
         'features.darkmode.title': '라이트 & 다크',
-        'features.darkmode.desc': '시스템 모양 변경에 따라 자동 적응. 글래스 위에서도 텍스트 가독성을 유지합니다.',
-        'features.glass.title': '글래스모피즘 UI',
-        'features.glass.desc': '부드러운 애니메이션과 호버 효과를 갖춘 아름다운 프로스트 글래스 디자인.',
+        'features.darkmode.desc': '라이트는 off-white, 다크는 dark surface — 모두 에이투지체(A2Z) 타이포로 정렬.',
         'features.zero.title': '토큰 비용 제로',
         'features.zero.desc': 'OAuth 사용량 API만 사용. Claude 메시지를 보내지 않아 토큰을 소모하지 않습니다.',
         'features.sync.title': '자동 동기화',
-        'features.sync.desc': '자동 새로고침 설정: 5분, 10분, 30분, 1시간 또는 수동.',
+        'features.sync.desc': '자동 새로고침: 1분/5분/10분/30분/1시간 또는 수동. ±10% jitter + 지수 백오프.',
         'features.cross.title': '크로스 플랫폼',
         'features.cross.desc': 'macOS는 네이티브 Swift, Windows & Linux는 Node.js 웹 위젯.',
-        'features.bilingual.title': '이중 언어',
-        'features.bilingual.desc': '영어와 한국어 지원이 기본으로 내장되어 있습니다.',
+        'features.multilang.title': '4개 언어',
+        'features.multilang.desc': 'English · 한국어 · 日本語 · 中文 — 설정에서 즉시 전환.',
+        'features.a11y.title': '접근성',
+        'features.a11y.desc': '모든 컨트롤 VoiceOver 라벨, ⌘R / ⌘Q / ⌘, 단축키, Reduce Motion 완벽 대응.',
         'features.buddy.title': '클로드 코드 버디',
         'features.buddy.desc': 'ASCII 아트 터미널 펫을 입양하세요. 18종, 5단계 희귀도, 1% 샤이니 확률.',
       }

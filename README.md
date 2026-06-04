@@ -22,23 +22,30 @@
 
 ## Features
 
-- **Real-time Monitoring** — 5-hour session usage & 7-day weekly limits with spring-animated session ring
+- **Real-time Monitoring** — 5-hour session usage & 7-day weekly limits with a spring-animated session ring
 - **Burn-rate ETA** — Predicts when you'll hit the session limit at current pace
-- **7-day Sparkline** — Usage trend strip in the Weekly Limits card
+- **7-day Sparkline** — Usage trend strip in the Weekly Limits card (history persisted locally)
+- **Custom Alert Thresholds** — Two sliders replace the fixed 80% / 90%; the menu-bar icon pulses at the lower one
+- **Rich Menu-Bar Tooltip** — Hover the icon for current %, ETA, weekly usage, and last sync without opening the popover
+- **CSV / JSON Export** — Send your 7-day history to a spreadsheet or notebook (Settings → Data)
+- **Multi-account** — Point the widget at a non-default `~/.claude/.credentials.json` to monitor a second account
 - **Menu Bar Format** — Off / `%` / Time / Both (segmented picker)
-- **Auto-Update via Sparkle** — One-click "Check for Updates" inside the app (macOS, signed/notarized)
+- **3-step Onboarding** — Intro → `claude login` copy button → notifications opt-in
+- **Friendly Error Banner** — Classified errors (credentials / rate-limit / network / server) with Retry & Open Terminal actions
+- **Auto-Update via Sparkle** — One-click "Check for Updates" inside the app (macOS, EdDSA-signed)
 - **Launch at Login** — Optional auto-start when you log in to macOS
-- **Usage Alerts** — Optional macOS notifications at 80% / 90% session usage + pulsing menu bar icon
-- **Universal Binary** — Native on Apple Silicon and Intel Macs
+- **Universal Binary** — Native on Apple Silicon and Intel Macs (macOS 13+)
 - **Rate-Limit Safe** — ±10% jitter between syncs and 2×→16× exponential backoff on 429
-- **Adaptive Light/Dark Theme** — Off-white surface in light mode, dark surface in dark mode
-- **에이투지체 (A2Z)** Typography — Clean Korean-optimized font on the popover
+- **Light & Dark Theme** — Off-white surface in light mode, dark surface in dark mode
+- **에이투지체 (A2Z)** Typography — Clean Korean-optimised font system across the popover
+- **4 Languages** — English · 한국어 · 日本語 · 中文 (switch instantly inside Settings)
 - **Accessibility** — VoiceOver labels, ⌘R refresh, ⌘Q quit, ⌘, settings, system **Reduce Motion** honoured
 - **Zero Token Cost** — Uses OAuth usage API only, no Claude messages sent
 - **Auto Sync** — Configurable intervals: 1m / 5m / 10m / 30m / 1h / manual
-- **Claude Code Buddy** — Official terminal pet system integrated (18 species, 5 rarity tiers, ASCII art)
+- **Tested** — 22-test pure-logic suite (`swift test`) for ETA, sparkline, thresholds, formatting
+- **CI/CD** — GitHub Actions for tests + auto build/sign/notarize/release/appcast on `v*-macos` tags
+- **Claude Code Buddy** — Official terminal pet integration (18 species, 5 rarity tiers, ASCII art)
 - **Cross Platform** — Native Swift on macOS, Node.js web widget on Windows & Linux
-- **Bilingual** — English / 한국어
 
 ---
 
@@ -138,12 +145,16 @@ Credentials are read from `~/.claude/.credentials.json` (or macOS Keychain).
 │  Widget App  │ ──────────────────► │  Anthropic Usage API │
 │  (local)     │ ◄────────────────── │  /api/oauth/usage    │
 └─────────────┘    Usage Data (%)    └──────────────────────┘
-
-• Reads OAuth credentials from ~/.claude/.credentials.json
-• Calls GET https://api.anthropic.com/api/oauth/usage
-• Auto-refreshes expired tokens
-• No messages sent to Claude = zero token cost
+       │
+       ▼
+   ~/.claude-usage-widget-history.json   (7-day rolling, exportable)
 ```
+
+• Reads OAuth credentials from `~/.claude/.credentials.json` (or any user-picked JSON for multi-account use)
+• Calls `GET https://api.anthropic.com/api/oauth/usage`
+• Auto-refreshes expired tokens; ±10% jitter + 2×→16× exponential backoff on 429
+• Stores each successful sync as a 7-day rolling history file used by the **Sparkline** and **Burn-rate ETA**
+• No messages sent to Claude → zero token cost
 
 ---
 
@@ -153,14 +164,19 @@ All settings live behind the gear icon in the popover.
 
 | Setting | Options | Default |
 |---------|---------|---------|
+| Language | English · 한국어 · 日本語 · 中文 | English |
+| Credentials file | `~/.claude/.credentials.json` (default) or any user-picked JSON | default |
 | Auto-sync | manual / 1m / 5m / 10m / 30m / 1h | 5m |
-| Language | English / 한국어 | English |
 | Launch at Login | on / off | off |
 | Menu Bar Text | Off / % / Time / Both | % |
-| Usage Alerts (80% / 90%) | on / off | off |
 | Compact mode | on / off | off |
-| Check for Updates | one-click | — |
-| Buddy | /buddy · /buddy pet · /buddy feed · /buddy off | off |
+| Keep on Top | on / off | off |
+| Show Buddy | on / off | on |
+| Usage Alerts | on / off | off |
+| Alert thresholds (1st / 2nd) | 50–95% / 60–99% sliders | 80% / 90% |
+| Data export | CSV · JSON · Clear history | — |
+| Check for Updates | one-click (Sparkle) | — |
+| Buddy commands | /buddy · /buddy pet · /buddy feed · /buddy off | off |
 
 ---
 
@@ -251,8 +267,32 @@ See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 | Platform | Stack |
 |----------|-------|
-| macOS (native) | Swift, SwiftUI, AppKit, ServiceManagement, UserNotifications, Security (Keychain), [Sparkle 2.x](https://sparkle-project.org/) |
+| macOS (native) | Swift 5.9, SwiftUI, AppKit, ServiceManagement, UserNotifications, Security (Keychain), [Sparkle 2.x](https://sparkle-project.org/) |
+| Pure logic library | Swift Package (`macos/Package.swift`) — testable on any platform |
 | Cross-platform | Node.js, HTML/CSS/JS |
+| CI | GitHub Actions: `swift test` on every push/PR, build/sign/notarize/release on `v*-macos` tags |
+
+---
+
+## Development
+
+```bash
+# Run the test suite (22 tests covering ETA, sparkline, thresholds, formatting)
+cd macos
+swift test
+
+# Build a local unsigned .app for development
+SKIP_SIGN=1 ./build.sh
+open "build/Claude Usage Widget.app"
+
+# Full signed + notarized release build (needs Developer ID identity + notary profile)
+./build.sh
+```
+
+See:
+- [`macos/MAS-SUBMISSION.md`](macos/MAS-SUBMISSION.md) — Mac App Store submission roadmap
+- [`macos/HOMEBREW-PR-GUIDE.md`](macos/HOMEBREW-PR-GUIDE.md) — Homebrew Cask submission instructions
+- [`.github/workflows/release-macos.yml`](.github/workflows/release-macos.yml) — required CI secrets
 
 ---
 
