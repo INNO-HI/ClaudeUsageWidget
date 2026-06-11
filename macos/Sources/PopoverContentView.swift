@@ -462,7 +462,7 @@ struct PopoverContentView: View {
                 }
 
                 Button(action: {
-                    viewModel.checkCredentials()
+                    viewModel.checkCredentials(forceRefresh: true)
                     viewModel.fetchUsage()
                 }) {
                     Text(L.refresh)
@@ -530,7 +530,7 @@ struct PopoverContentView: View {
             .accessibilityLabel(L.customPath)
 
             if viewModel.credentialPathOverride != nil {
-                Button(action: { viewModel.credentialPathOverride = nil; viewModel.checkCredentials(); viewModel.fetchUsage() }) {
+                Button(action: { viewModel.credentialPathOverride = nil; viewModel.checkCredentials(forceRefresh: true); viewModel.fetchUsage() }) {
                     Text(L.clearOverride)
                         .font(AppFont.semibold(9))
                         .foregroundColor(Theme.textSecondary)
@@ -559,7 +559,7 @@ struct PopoverContentView: View {
         NSApp.activate(ignoringOtherApps: true)
         if panel.runModal() == .OK, let url = panel.url {
             viewModel.credentialPathOverride = url.path
-            viewModel.checkCredentials()
+            viewModel.checkCredentials(forceRefresh: true)
             viewModel.fetchUsage()
         }
     }
@@ -770,7 +770,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.4.0")
+            Text("v1.4.1")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -922,7 +922,7 @@ struct ErrorBannerView: View {
                     }
 
                     actionButton(L.retryNow, icon: "arrow.clockwise", color: Theme.claudeOrange) {
-                        viewModel.checkCredentials()
+                        viewModel.checkCredentials(forceRefresh: true)
                         viewModel.fetchUsage()
                     }
 

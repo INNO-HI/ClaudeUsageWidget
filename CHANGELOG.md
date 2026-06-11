@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] — 2026-06-11
+
+### Fixed
+- **Repeated macOS Keychain access prompts.** Every auto-sync re-queried the Keychain because the credentials were re-read from disk + Keychain on every tick. The widget now holds the parsed `OAuthCredentials` in memory and only re-reads when:
+  - the cached `expiresAt` is within 30 s of now (Claude Code has rotated the token),
+  - the server returns 401 / 403 (the cache is invalidated automatically),
+  - the user explicitly triggers Refresh / Retry / picks a new credentials file (these call `checkCredentials(forceRefresh: true)`),
+  - the `credentialPathOverride` changes (the new path resets both the cache and the "Keychain denied" flag).
+- If the Keychain prompt is cancelled or denied once during a session, the widget no longer re-prompts on subsequent auto-syncs — it surfaces "Not logged in" until the user explicitly retries.
+
+### Internal
+- `UsageService` gains `cachedCredentials`, `keychainDeniedThisSession`, `invalidateCachedCredentials()`, and `isCachedTokenExpired(_:)`.
+- The fetch path invalidates the cache on `401/403` before raising `.unauthorized`, so the next sync pulls Claude Code's freshly-rotated token from disk.
+
+---
+
 ## [1.4.0] — 2026-06-02
 
 ### Added

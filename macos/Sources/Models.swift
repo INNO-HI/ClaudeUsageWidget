@@ -492,8 +492,14 @@ class UsageViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    func checkCredentials() {
+    /// Re-validate credentials. By default uses the cached in-memory copy if
+    /// available; pass `forceRefresh: true` from user-initiated actions
+    /// (Refresh button, multi-account picker) to drop the cache and re-read.
+    func checkCredentials(forceRefresh: Bool = false) {
         credentialStatus = .checking
+        if forceRefresh {
+            service.invalidateCachedCredentials()
+        }
         if service.readCredentialsFromKeychain() != nil {
             credentialStatus = .found
         } else {

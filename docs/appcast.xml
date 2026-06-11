@@ -7,6 +7,28 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.4.1</title>
+            <sparkle:shortVersionString>1.4.1</sparkle:shortVersionString>
+            <sparkle:version>6</sparkle:version>
+            <pubDate>Thu, 11 Jun 2026 18:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Fixes repeated macOS Keychain prompts</h2>
+                <ul>
+                    <li>Credentials are now held in memory between syncs — no more Keychain prompt on every 5-minute tick</li>
+                    <li>Cache invalidates automatically when the token expires or the server returns 401 / 403</li>
+                    <li>If the Keychain prompt is denied once, the widget stops re-prompting until you explicitly retry</li>
+                    <li>User-triggered Refresh / Retry / multi-account picker still force a fresh read</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.4.1-macos/ClaudeUsageWidget.dmg"
+                length="1972871"
+                type="application/octet-stream"
+                sparkle:edSignature="OmA44B6EGdRao4GtRu6k7/xqiVnbZGO5huxr6UkyPGYHS8nDnTWON1l4+IPWXO3jOTfvH3Ou2tuXfh8Us6oMBg==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.4.0</title>
             <sparkle:shortVersionString>1.4.0</sparkle:shortVersionString>
             <sparkle:version>5</sparkle:version>

@@ -41,18 +41,55 @@ class ClaudeUsageService {
 
     /// Path to the OAuth credentials file. Defaults to `~/.claude/.credentials.json`
     /// but can be overridden so users with multiple Claude accounts can point the
-    /// widget at a per-profile copy.
-    var credentialFilePath: String = NSHomeDirectory() + "/.claude/.credentials.json"
+    /// widget at a per-profile copy. Setting this clears the cached credentials.
+    var credentialFilePath: String = NSHomeDirectory() + "/.claude/.credentials.json" {
+        didSet {
+            if oldValue != credentialFilePath { invalidateCachedCredentials() }
+        }
+    }
 
+    // MARK: - Credential cache
+    //
+    // Reading from the macOS Keychain triggers a permission prompt the first
+    // time AND every time after that for ad-hoc / non-trusted signed builds.
+    // We hold the parsed credentials in memory and only re-read when:
+    //   1) the path changes,
+    //   2) the access token is past its `expiresAt`,
+    //   3) the server returns 401 / 403 (handled by callers via
+    //      invalidateCachedCredentials()).
+    private var cachedCredentials: OAuthCredentials?
+    /// If Keychain access was denied / cancelled this session, don't re-prompt
+    /// on every auto-sync — surface "not logged in" until the user explicitly
+    /// retries (via Refresh / multi-account picker).
+    private var keychainDeniedThisSession: Bool = false
+
+    func invalidateCachedCredentials() {
+        cachedCredentials = nil
+        keychainDeniedThisSession = false
+    }
+
+    /// Read credentials, preferring the in-memory cache to avoid spamming the
+    /// macOS Keychain prompt. Falls back to the file on disk, then the
+    /// Keychain (at most once per session).
     func readCredentialsFromKeychain() -> OAuthCredentials? {
-        // Try file first (no Keychain prompt)
-        if let data = try? Data(contentsOf: URL(fileURLWithPath: credentialFilePath)) {
-            if let creds = parseCredentials(data: data) {
-                return creds
-            }
+        if let cached = cachedCredentials, !isCachedTokenExpired(cached) {
+            return cached
         }
 
-        // Fallback: Keychain (triggers permission prompt on first access)
+        // 1) Disk file (no prompt). Re-read here also captures token rotation
+        //    when Claude Code refreshes credentials between syncs.
+        if let data = try? Data(contentsOf: URL(fileURLWithPath: credentialFilePath)),
+           let creds = parseCredentials(data: data) {
+            cachedCredentials = creds
+            return creds
+        }
+
+        // 2) Keychain — only once per session unless cache was explicitly
+        //    invalidated (e.g. by a 401 from the server).
+        if keychainDeniedThisSession {
+            return nil
+        }
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "Claude Code-credentials",
@@ -63,11 +100,24 @@ class ClaudeUsageService {
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
 
-        if status == errSecSuccess, let data = result as? Data {
-            return parseCredentials(data: data)
+        if status == errSecSuccess, let data = result as? Data,
+           let creds = parseCredentials(data: data) {
+            cachedCredentials = creds
+            return creds
         }
 
+        // Anything else (user cancelled, item missing, errSecAuthFailed)
+        // — flag denied so the next 5-min sync doesn't trigger a fresh prompt.
+        keychainDeniedThisSession = true
         return nil
+    }
+
+    /// Treat a token whose `expiresAt` is in the past (with a 30-second buffer)
+    /// as expired so we re-read from disk and pick up Claude Code's refresh.
+    private func isCachedTokenExpired(_ creds: OAuthCredentials) -> Bool {
+        guard creds.expiresAt > 0 else { return false }
+        let nowMs = Date().timeIntervalSince1970 * 1000  // expiresAt is ms-precision
+        return nowMs > (creds.expiresAt - 30_000)
     }
 
     private func parseCredentials(data: Data) -> OAuthCredentials? {
@@ -171,7 +221,10 @@ class ClaudeUsageService {
             }
 
             // READ-ONLY mode: do not refresh. Let Claude Code handle it.
+            // Drop the cached token so the next sync re-reads the file (which
+            // Claude Code should have rotated by then).
             if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                self?.invalidateCachedCredentials()
                 completion(.failure(ServiceError.unauthorized))
                 return
             }

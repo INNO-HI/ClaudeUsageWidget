@@ -220,7 +220,10 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.4.0 (latest)
+### v1.4.1 (latest)
+- Fixed **repeated macOS Keychain access prompts** — credentials are now cached in memory between syncs; the Keychain is only queried again when the token actually expires, the server returns 401/403, or the user explicitly hits Refresh
+
+### v1.4.0
 - Added **CSV / JSON export** of usage history (Settings → Data) + Clear history
 - Added **Multi-account credential path** — point the widget at a non-default credentials file
 - Added **Rich menu-bar tooltip** — hover the icon for current %, ETA, weekly %, last sync
