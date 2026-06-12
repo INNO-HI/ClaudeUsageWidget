@@ -7,6 +7,27 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.4.2</title>
+            <sparkle:shortVersionString>1.4.2</sparkle:shortVersionString>
+            <sparkle:version>7</sparkle:version>
+            <pubDate>Thu, 12 Jun 2026 14:30:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Fixes Keychain re-prompts caused by expiresAt unit mismatch</h2>
+                <ul>
+                    <li>Claude Code stores token expiresAt in milliseconds; older code assumed both ms and seconds incorrectly, treating every cached token as expired</li>
+                    <li>Unit is now auto-detected (>1e11 = ms, otherwise seconds) so cache survives between syncs</li>
+                    <li>Added unified-logging diagnostics under subsystem com.innohi.claudeusagewidget / category creds — stream live with: log stream --predicate 'subsystem == "com.innohi.claudeusagewidget"' --style compact</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.4.2-macos/ClaudeUsageWidget.dmg"
+                length="2267628"
+                type="application/octet-stream"
+                sparkle:edSignature="eqTaJbZ0ozSnzUoX54exaeTff4Y5nkcBy+Y0fuJREP/zzetCmMuKq0nmlY3Trlys3pYsKanqmpzqUHAIqh6mBQ==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.4.1</title>
             <sparkle:shortVersionString>1.4.1</sparkle:shortVersionString>
             <sparkle:version>6</sparkle:version>

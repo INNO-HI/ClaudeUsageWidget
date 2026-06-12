@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2] — 2026-06-12
+
+### Fixed
+- **`expiresAt` unit mismatch could mark every cached token as expired.** Claude Code stores the token's `expiresAt` in milliseconds (13-digit value) but historically used seconds (10-digit) in some builds. The previous comparison assumed milliseconds only — if a user landed on a seconds-format file, the cache check would treat every token as already expired and re-query the Keychain on every sync. The unit is now auto-detected (values > 1e11 are ms; below that, seconds).
+
+### Added
+- **Unified-logging diagnostics** under subsystem `com.innohi.claudeusagewidget`, category `creds`. Stream live with:
+
+  ```bash
+  log stream --predicate 'subsystem == "com.innohi.claudeusagewidget" AND category == "creds"' --style compact
+  ```
+
+  Markers emitted: `cache-hit`, `cache-expired`, `file-hit`, `file-miss`, `keychain-denied-cached`, `keychain-query START`, `keychain-query OK (Nms)`, `keychain-query FAIL status=N`, `expires-check now=… expiresAt=… expiresSec=… expired=…`, `invalidate-cache`. These let users (and us) verify exactly when — and whether — the macOS Keychain prompt is triggered.
+
+### Internal
+- `UsageService` switched to `os_log` with `%{public}@` markers (previously NSLog, which was redacted as `<private>` in unified logging).
+
+---
+
 ## [1.4.1] — 2026-06-11
 
 ### Fixed

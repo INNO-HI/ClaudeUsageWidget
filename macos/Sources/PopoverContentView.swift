@@ -770,7 +770,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.4.1")
+            Text("v1.4.2")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 

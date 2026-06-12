@@ -1,7 +1,14 @@
 import Foundation
 import Security
+import os.log
 
 // MARK: - Claude Usage Service (OAuth-based)
+
+/// Unified-logging channel for credential decisions. Stream live with:
+///   log stream --predicate 'subsystem == "com.innohi.claudeusagewidget" AND category == "creds"' --style compact
+/// Or pull recent history:
+///   log show --predicate 'subsystem == "com.innohi.claudeusagewidget" AND category == "creds"' --last 30m --info
+private let credsLog = OSLog(subsystem: "com.innohi.claudeusagewidget", category: "creds")
 
 class ClaudeUsageService {
 
@@ -64,6 +71,7 @@ class ClaudeUsageService {
     private var keychainDeniedThisSession: Bool = false
 
     func invalidateCachedCredentials() {
+        os_log("invalidate-cache", log: credsLog, type: .info)
         cachedCredentials = nil
         keychainDeniedThisSession = false
     }
@@ -71,22 +79,40 @@ class ClaudeUsageService {
     /// Read credentials, preferring the in-memory cache to avoid spamming the
     /// macOS Keychain prompt. Falls back to the file on disk, then the
     /// Keychain (at most once per session).
+    ///
+    /// Emits NSLog markers so the actual decision path is visible in
+    /// Console.app / `log stream --process ClaudeUsageBar`:
+    ///   [creds] cache-hit               (no Keychain access)
+    ///   [creds] cache-expired           (token rotation imminent)
+    ///   [creds] file-hit                (disk read, no prompt)
+    ///   [creds] file-miss               (about to query Keychain)
+    ///   [creds] keychain-denied-cached  (cancelled earlier this session)
+    ///   [creds] keychain-query START    (prompt may appear NOW)
+    ///   [creds] keychain-query OK       (got the data)
+    ///   [creds] keychain-query FAIL=N   (status code from SecItemCopyMatching)
     func readCredentialsFromKeychain() -> OAuthCredentials? {
         if let cached = cachedCredentials, !isCachedTokenExpired(cached) {
+            os_log("cache-hit", log: credsLog, type: .info)
             return cached
+        }
+        if cachedCredentials != nil {
+            os_log("cache-expired", log: credsLog, type: .info)
         }
 
         // 1) Disk file (no prompt). Re-read here also captures token rotation
         //    when Claude Code refreshes credentials between syncs.
         if let data = try? Data(contentsOf: URL(fileURLWithPath: credentialFilePath)),
            let creds = parseCredentials(data: data) {
+            os_log("file-hit path=%{public}@", log: credsLog, type: .info, credentialFilePath)
             cachedCredentials = creds
             return creds
         }
+        os_log("file-miss path=%{public}@", log: credsLog, type: .info, credentialFilePath)
 
         // 2) Keychain — only once per session unless cache was explicitly
         //    invalidated (e.g. by a 401 from the server).
         if keychainDeniedThisSession {
+            os_log("keychain-denied-cached (skipping prompt)", log: credsLog, type: .info)
             return nil
         }
 
@@ -98,26 +124,42 @@ class ClaudeUsageService {
         ]
 
         var result: AnyObject?
+        os_log("keychain-query START — prompt may appear NOW", log: credsLog, type: .info)
+        let start = Date()
         let status = SecItemCopyMatching(query as CFDictionary, &result)
+        let elapsedMs = Int(Date().timeIntervalSince(start) * 1000)
 
         if status == errSecSuccess, let data = result as? Data,
            let creds = parseCredentials(data: data) {
+            os_log("keychain-query OK (%{public}dms)", log: credsLog, type: .info, elapsedMs)
             cachedCredentials = creds
             return creds
         }
 
         // Anything else (user cancelled, item missing, errSecAuthFailed)
         // — flag denied so the next 5-min sync doesn't trigger a fresh prompt.
+        os_log("keychain-query FAIL status=%{public}d (%{public}dms)", log: credsLog, type: .info, Int(status), elapsedMs)
         keychainDeniedThisSession = true
         return nil
     }
 
     /// Treat a token whose `expiresAt` is in the past (with a 30-second buffer)
     /// as expired so we re-read from disk and pick up Claude Code's refresh.
+    ///
+    /// Defensive about the unit: Claude Code historically stored `expiresAt` in
+    /// **seconds** (10-digit Unix timestamp) but some versions ship it in
+    /// **milliseconds** (13-digit). Values > 1e11 are clearly ms; below that
+    /// we assume seconds. A wrongly-assumed unit would mark every cached token
+    /// as expired and re-prompt on every sync — exactly the bug we're fighting.
     private func isCachedTokenExpired(_ creds: OAuthCredentials) -> Bool {
         guard creds.expiresAt > 0 else { return false }
-        let nowMs = Date().timeIntervalSince1970 * 1000  // expiresAt is ms-precision
-        return nowMs > (creds.expiresAt - 30_000)
+        let expiresSec = creds.expiresAt > 1e11 ? creds.expiresAt / 1000 : creds.expiresAt
+        let nowSec = Date().timeIntervalSince1970
+        let expired = nowSec > (expiresSec - 30)
+        os_log("expires-check now=%{public}.0f expiresAt=%{public}.0f expiresSec=%{public}.0f expired=%{public}@",
+               log: credsLog, type: .info,
+               nowSec, creds.expiresAt, expiresSec, expired ? "YES" : "no")
+        return expired
     }
 
     private func parseCredentials(data: Data) -> OAuthCredentials? {

@@ -220,7 +220,11 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.4.1 (latest)
+### v1.4.2 (latest)
+- Fixed **`expiresAt` unit mismatch** that re-prompted the Keychain on every sync when Claude Code stored the value in milliseconds — the cache check now auto-detects ms vs seconds
+- Added **unified-logging diagnostics** under subsystem `com.innohi.claudeusagewidget` / category `creds` so users can verify themselves when the Keychain is actually queried
+
+### v1.4.1
 - Fixed **repeated macOS Keychain access prompts** — credentials are now cached in memory between syncs; the Keychain is only queried again when the token actually expires, the server returns 401/403, or the user explicitly hits Refresh
 
 ### v1.4.0
