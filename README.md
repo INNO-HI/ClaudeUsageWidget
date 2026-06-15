@@ -220,7 +220,10 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.5.1 (latest)
+### v1.5.2 (latest)
+- Fixed **eyes were invisible** on the menu-bar icon — `NSColor.clear` doesn't actually carve through, so the body stayed solid. Now uses `windingRule=.evenOdd` to produce real transparent cutouts. Eye box doubled for visibility at 18×18
+
+### v1.5.1
 - Fixed **the "Claude active" face that never lit up** — v1.5.0 watched `~/.claude-status.json` mtime which only updates if you've configured a status-line script. Now uses `pgrep -x claude` every 10 s, which directly reflects whether the CLI binary is alive
 - Added **Settings → "Animated menu-bar face"** toggle to disable the syncing blink if it's distracting
 

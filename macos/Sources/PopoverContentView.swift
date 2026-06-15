@@ -772,7 +772,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.5.1")
+            Text("v1.5.2")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -1294,6 +1294,12 @@ func createMenuBarIcon(
         let h = rect.height / 24
 
         let path = NSBezierPath()
+        // Even-odd winding rule — adding the eye rectangles as sub-paths of
+        // the body path turns them into actual transparent holes when we
+        // fill once at the end. The old approach (`NSColor.clear.fill()`)
+        // painted transparent pixels on top of the orange body, which
+        // composites to "no change" — the eyes were never visible.
+        path.windingRule = .evenOdd
 
         // Main body (unchanged across expressions)
         path.move(to: NSPoint(x: 20.998 * w, y: rect.height - 10.949 * h))
@@ -1325,47 +1331,52 @@ func createMenuBarIcon(
         path.line(to: NSPoint(x: 20.998 * w, y: rect.height - 5 * h))
         path.close()
 
-        fillColor.setFill()
-        path.fill()
-
-        // Eye geometry — anchor points for the two eye sockets.
-        // Default rectangle is (1.488w × 2.847h), centred at the original
-        // SVG eye positions. Each expression tweaks the box.
-        let baseLeftX  = 6.0    * w
-        let baseRightX = 16.51  * w
-        let baseY      = rect.height - 10.949 * h   // top edge of socket
-        let baseW      = 1.488  * w
-        let baseH      = -(10.949 - 8.102) * h      // negative because we draw upward in flipped coords
+        // Eye geometry — bumped up to ~2× the original SVG eye box so it
+        // actually reads as a face at 18×18 pixels. Each expression tweaks
+        // the rectangle, then we append it as a sub-path to the same body
+        // path. Even-odd fill turns the sub-paths into real cutouts.
+        let baseLeftCenterX  = 6.7  * w
+        let baseRightCenterX = 17.3 * w
+        let baseCenterY      = rect.height - 9.5 * h
+        let baseW: CGFloat   = 2.8 * w
+        let baseH: CGFloat   = 4.0 * h
 
         let leftRect:  NSRect
         let rightRect: NSRect
 
         switch expression {
         case .idle:
-            // ●● — current/calm
-            leftRect  = NSRect(x: baseLeftX,  y: baseY, width: baseW, height: baseH)
-            rightRect = NSRect(x: baseRightX, y: baseY, width: baseW, height: baseH)
+            // ●● — calm rectangular eyes
+            leftRect  = NSRect(x: baseLeftCenterX  - baseW/2, y: baseCenterY - baseH/2,
+                               width: baseW, height: baseH)
+            rightRect = NSRect(x: baseRightCenterX - baseW/2, y: baseCenterY - baseH/2,
+                               width: baseW, height: baseH)
 
         case .syncing:
-            // −− — horizontal slits; AppDelegate alternates with .idle for a blink
-            let slitH = baseH * 0.35
-            let slitY = baseY + (baseH - slitH) / 2  // vertically centred in the original socket
-            leftRect  = NSRect(x: baseLeftX,  y: slitY, width: baseW, height: slitH)
-            rightRect = NSRect(x: baseRightX, y: slitY, width: baseW, height: slitH)
+            // −− — short horizontal slits (blinking; AppDelegate alternates with .idle)
+            let slitH = baseH * 0.30
+            leftRect  = NSRect(x: baseLeftCenterX  - baseW/2, y: baseCenterY - slitH/2,
+                               width: baseW, height: slitH)
+            rightRect = NSRect(x: baseRightCenterX - baseW/2, y: baseCenterY - slitH/2,
+                               width: baseW, height: slitH)
 
         case .activeClaude:
-            // ◉◉ — wider and slightly taller, "alert"
-            let wider = baseW * 1.25
-            let taller = baseH * 1.20
-            let dxL = (wider - baseW) / 2
-            let dxR = (wider - baseW) / 2
-            let dy  = (taller - baseH) / 2
-            leftRect  = NSRect(x: baseLeftX  - dxL, y: baseY + dy, width: wider, height: taller)
-            rightRect = NSRect(x: baseRightX - dxR, y: baseY + dy, width: wider, height: taller)
+            // ◉◉ — wider and taller "alert" eyes
+            let wider  = baseW * 1.35
+            let taller = baseH * 1.25
+            leftRect  = NSRect(x: baseLeftCenterX  - wider/2, y: baseCenterY - taller/2,
+                               width: wider, height: taller)
+            rightRect = NSRect(x: baseRightCenterX - wider/2, y: baseCenterY - taller/2,
+                               width: wider, height: taller)
         }
 
-        NSBezierPath(rect: leftRect).fill(using: .clear)
-        NSBezierPath(rect: rightRect).fill(using: .clear)
+        // Append eye rectangles as sub-paths. Combined with .evenOdd above,
+        // these become genuine holes in the body when we fill once.
+        path.appendRect(leftRect)
+        path.appendRect(rightRect)
+
+        fillColor.setFill()
+        path.fill()
 
         return true
     }
@@ -1374,14 +1385,6 @@ func createMenuBarIcon(
     return image
 }
 
-private extension NSBezierPath {
-    /// Fill the path with the given colour. Tiny helper to keep the icon
-    /// drawing loop readable.
-    func fill(using color: NSColor) {
-        color.setFill()
-        self.fill()
-    }
-}
 
 // MARK: - Session Ring (circular progress with center label)
 

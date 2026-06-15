@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.2] — 2026-06-15
+
+### Fixed
+- **Eyes were invisible on the menu-bar icon.** The original code drew the eye rectangles with `NSColor.clear.setFill()`, which paints transparent pixels on top of the orange body — and a transparent paint composites to "no change", so the body stayed solid. The eye notches that v1.5.0 advertised never actually appeared.
+- The fix: the eye rectangles are now appended as sub-paths to the same body path, and the path's `windingRule` is set to `.evenOdd`. A single `path.fill()` then turns the eye regions into genuine transparent holes — visible at 18×18 px in both light and dark menu bars.
+- While I was in there: bumped the eye box to ~2× the original SVG size (which was sub-pixel at menu-bar resolution and effectively invisible even with the cutout fix). Now the three expressions are visually distinguishable:
+  - **Idle** — short rectangular eyes
+  - **Syncing** — horizontal slits (30 % of idle height)
+  - **Active** — wider × taller eyes (35 % wider, 25 % taller than idle)
+
+### Internal
+- Removed the now-unused `NSBezierPath.fill(using:)` helper.
+- `createMenuBarIcon` ends with a single `path.fill()` call (down from three: body + two eye overpaints) — cheaper draw, fewer state changes.
+
+---
+
 ## [1.5.1] — 2026-06-15
 
 ### Fixed

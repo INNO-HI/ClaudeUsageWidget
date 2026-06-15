@@ -7,6 +7,27 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.5.2</title>
+            <sparkle:shortVersionString>1.5.2</sparkle:shortVersionString>
+            <sparkle:version>11</sparkle:version>
+            <pubDate>Sun, 15 Jun 2026 18:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Eyes were invisible — fixed</h2>
+                <ul>
+                    <li>v1.5.0/.1 drew eye cutouts with NSColor.clear which paints transparent pixels on top of the body — composites to "no change". The eye notches never actually appeared.</li>
+                    <li>Eyes are now appended as sub-paths with windingRule=.evenOdd, producing real transparent holes in the body.</li>
+                    <li>Bumped the eye box to ~2× the original SVG size so all three expressions are visible at 18×18 px.</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.5.2-macos/ClaudeUsageWidget.dmg"
+                length="2288371"
+                type="application/octet-stream"
+                sparkle:edSignature="2G+2kseD8UrImLdNpY8G09R1h1wzLPC8zgmbzGf5H1v8JZJPvVr4B4z2kBR1dv1Bgvcjz1vaXOoEmhJjvUt8AA==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.5.1</title>
             <sparkle:shortVersionString>1.5.1</sparkle:shortVersionString>
             <sparkle:version>10</sparkle:version>
