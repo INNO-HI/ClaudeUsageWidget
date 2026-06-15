@@ -93,6 +93,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                 }
                 .store(in: &cancellables)
+
+            // Re-paint when the user toggles the animated face off / on
+            viewModel.$showMenuBarExpressions
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    if let btn = self?.statusItem.button {
+                        self?.updateStatusBarIcon(button: btn)
+                    }
+                }
+                .store(in: &cancellables)
         }
 
         // Reconcile Launch-at-Login flag with actual system state
@@ -125,8 +135,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let pct = viewModel.usage.isConnected ? viewModel.usage.sessionUsagePercent : 0
         // Three faces — picked by priority: syncing > claude active > idle.
         // The syncing face blinks (handled by startBlinkAnimation below).
+        // If the user has turned the animated face off in Settings, always
+        // use .idle regardless of state.
         let expression: IconExpression
-        if syncing {
+        if !viewModel.showMenuBarExpressions {
+            expression = .idle
+        } else if syncing {
             expression = .syncing
         } else if viewModel.claudeActivelyRunning {
             expression = .activeClaude

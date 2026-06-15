@@ -220,7 +220,11 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.5.0 (latest)
+### v1.5.1 (latest)
+- Fixed **the "Claude active" face that never lit up** — v1.5.0 watched `~/.claude-status.json` mtime which only updates if you've configured a status-line script. Now uses `pgrep -x claude` every 10 s, which directly reflects whether the CLI binary is alive
+- Added **Settings → "Animated menu-bar face"** toggle to disable the syncing blink if it's distracting
+
+### v1.5.0
 - Added **3-expression menu-bar face** — idle dots (●●), blinking slits (−−) while syncing, wide alert eyes (◉◉) while Claude Code is actively running
 - Claude activity detected via `~/.claude-status.json` mtime (writes within last 30 s = active)
 - All eye animation honours the system **Reduce Motion** setting

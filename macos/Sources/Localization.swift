@@ -91,6 +91,7 @@ struct L {
     static var alertHigh: String { t("2nd alert", ko: "2차 알림", ja: "2次アラート", zh: "次级提醒") }
     static var showBuddy: String { t("Show Buddy", ko: "버디 표시", ja: "バディを表示", zh: "显示伙伴") }
     static var compactMode: String { t("Compact mode", ko: "컴팩트 모드", ja: "コンパクトモード", zh: "紧凑模式") }
+    static var menuBarExpressions: String { t("Animated menu-bar face", ko: "메뉴바 표정 애니메이션", ja: "メニューバーの表情アニメ", zh: "菜单栏表情动画") }
 
     // Onboarding
     static var welcomeTitle: String { t("Welcome to Claude Usage Widget", ko: "Claude Usage Widget에 오신 것을 환영합니다", ja: "Claude Usage Widget へようこそ", zh: "欢迎使用 Claude Usage Widget") }

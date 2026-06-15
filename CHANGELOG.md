@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.1] — 2026-06-15
+
+### Fixed
+- **v1.5.0's "Claude active" face never lit up in practice.** The detection looked at `~/.claude-status.json`'s mtime, but that file is only written by users who have configured a status-line script — most don't. A quick check on a fresh system: Claude Code had 4 processes running, but the status file was 62 days stale. The widget now spawns `pgrep -x claude` every 10 s instead, which directly reflects whether the CLI binary is alive. Verified live via the new `activity` log channel:
+
+      log stream --predicate 'subsystem == "com.innohi.claudeusagewidget" AND category == "activity"'
+
+  emits `pgrep claude → ACTIVE` / `pgrep claude → idle` on every poll.
+
+### Added
+- **Settings → General → "Animated menu-bar face"** toggle. When off, the static idle dots are used regardless of state — useful if the 0.25 s sync blink is distracting. Default: on.
+
+### Internal
+- pgrep runs on a `.utility` background queue; the result hops to main before mutating `claudeActivelyRunning`. The polling interval is bumped 5 s → 10 s since "Claude is running" doesn't flip faster than that anyway.
+
+---
+
 ## [1.5.0] — 2026-06-15
 
 ### Added

@@ -174,6 +174,8 @@ struct PopoverContentView: View {
 
             settingsToggleRow(label: L.compactMode, isOn: $viewModel.compactMode)
 
+            settingsToggleRow(label: L.menuBarExpressions, isOn: $viewModel.showMenuBarExpressions)
+
             // ── Notifications ────────────────────────
             categoryHeader(L.sectionNotifications, icon: "bell.fill")
 
@@ -770,7 +772,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.5.0")
+            Text("v1.5.1")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 

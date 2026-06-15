@@ -7,6 +7,27 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.5.1</title>
+            <sparkle:shortVersionString>1.5.1</sparkle:shortVersionString>
+            <sparkle:version>10</sparkle:version>
+            <pubDate>Sun, 15 Jun 2026 17:30:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Fixes the "Claude active" face that never lit up</h2>
+                <ul>
+                    <li>v1.5.0 checked ~/.claude-status.json mtime, but that file only exists if you've configured a status-line script — most users haven't</li>
+                    <li>Replaced with pgrep -x claude every 10s; verified via the new "activity" log channel</li>
+                    <li>Added Settings → "Animated menu-bar face" toggle so you can disable the syncing blink if it's distracting</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.5.1-macos/ClaudeUsageWidget.dmg"
+                length="2288428"
+                type="application/octet-stream"
+                sparkle:edSignature="WoH6D5cPCqLAyPVt2I2gYr3mlFYTdN+6pXsdGHMoKckz5NBP0t59OT04qmiW52tC3pdOkzeyS1JwTtHkBpKhDw==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.5.0</title>
             <sparkle:shortVersionString>1.5.0</sparkle:shortVersionString>
             <sparkle:version>9</sparkle:version>

@@ -2,6 +2,11 @@ import Foundation
 import Combine
 import ServiceManagement
 import UserNotifications
+import os.log
+
+/// Unified-logging channel for Claude Code activity detection. Stream with:
+///   log stream --predicate 'subsystem == "com.innohi.claudeusagewidget" AND category == "activity"' --style compact
+private let activityLog = OSLog(subsystem: "com.innohi.claudeusagewidget", category: "activity")
 
 // MARK: - Data Models
 
@@ -426,6 +431,12 @@ class UsageViewModel: ObservableObject {
         didSet { saveConfig() }
     }
     @Published var compactMode: Bool = false {
+        didSet { saveConfig() }
+    }
+    /// When true (default), the menu-bar icon shows three different expressions
+    /// (idle / syncing / Claude active). When false, the static idle face is
+    /// used regardless of state. Useful if the blink is distracting.
+    @Published var showMenuBarExpressions: Bool = true {
         didSet { saveConfig() }
     }
     @Published var hasCompletedOnboarding: Bool = false {
@@ -901,34 +912,60 @@ class UsageViewModel: ObservableObject {
 
     // MARK: - Claude Code activity watch (drives the menu-bar face)
 
-    /// Claude Code's status line writes to `~/.claude-status.json` while it's
-    /// running. If the file's mtime is within the last 30 s, we treat Claude
-    /// as actively used and AppDelegate switches the icon to "alert eyes".
-    private static let claudeStatusPath = NSHomeDirectory() + "/.claude-status.json"
-    private static let claudeActivityFreshnessSec: TimeInterval = 30
-    private static let claudeActivityPollSec: TimeInterval = 5
+    /// Polling cadence — 10 s is fast enough to feel live without spawning
+    /// pgrep every few seconds. "Claude is running" doesn't flip back and
+    /// forth at sub-second scale, so going lower buys nothing.
+    private static let claudeActivityPollSec: TimeInterval = 10
 
     private func setupClaudeActivityWatch() {
         claudeActivityTimer?.invalidate()
-        updateClaudeActivityFlag()  // initial check
+        // Initial check off the main thread — pgrep is ~5-15 ms.
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            self?.queryClaudeRunning()
+        }
         let timer = Timer(timeInterval: Self.claudeActivityPollSec, repeats: true) { [weak self] _ in
-            self?.updateClaudeActivityFlag()
+            DispatchQueue.global(qos: .utility).async {
+                self?.queryClaudeRunning()
+            }
         }
         RunLoop.main.add(timer, forMode: .common)
         claudeActivityTimer = timer
     }
 
-    private func updateClaudeActivityFlag() {
-        let path = Self.claudeStatusPath
+    /// Runs `pgrep -x claude`. The original v1.5.0 implementation checked
+    /// `~/.claude-status.json`'s mtime, but that file only ever exists if the
+    /// user has configured a status-line script (most users haven't). pgrep
+    /// directly checks for a running Claude Code CLI binary, which is what
+    /// "Claude actively running" really means.
+    ///
+    /// Must run off the main thread. Hops back to main to publish the result.
+    private func queryClaudeRunning() {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+        task.arguments = ["-x", "claude"]
+        task.standardOutput = Pipe()
+        task.standardError = Pipe()
+
         let active: Bool
-        if let attrs = try? FileManager.default.attributesOfItem(atPath: path),
-           let mtime = attrs[.modificationDate] as? Date {
-            active = Date().timeIntervalSince(mtime) < Self.claudeActivityFreshnessSec
-        } else {
+        do {
+            try task.run()
+            task.waitUntilExit()
+            // pgrep exit codes: 0 = at least one match, 1 = no match, 2 = error
+            active = (task.terminationStatus == 0)
+        } catch {
             active = false
         }
-        if active != claudeActivelyRunning {
-            claudeActivelyRunning = active
+
+        os_log("pgrep claude → %{public}@ (status=%{public}d)",
+               log: activityLog, type: .info,
+               active ? "ACTIVE" : "idle",
+               Int(task.terminationStatus))
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if active != self.claudeActivelyRunning {
+                self.claudeActivelyRunning = active
+            }
         }
     }
 
@@ -1047,6 +1084,9 @@ class UsageViewModel: ObservableObject {
         if let compact = config["compactMode"] as? Bool {
             compactMode = compact
         }
+        if let expr = config["showMenuBarExpressions"] as? Bool {
+            showMenuBarExpressions = expr
+        }
         if let onboarded = config["hasCompletedOnboarding"] as? Bool {
             hasCompletedOnboarding = onboarded
         } else {
@@ -1093,6 +1133,7 @@ class UsageViewModel: ObservableObject {
             "credentialPathOverride": credentialPathOverride ?? "",
             "showBuddy": showBuddy,
             "compactMode": compactMode,
+            "showMenuBarExpressions": showMenuBarExpressions,
             "hasCompletedOnboarding": hasCompletedOnboarding,
             "language": language.rawValue,
             "buddyState": buddyState.rawValue,
