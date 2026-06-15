@@ -122,6 +122,28 @@ public func sparklineSamples(
     return out
 }
 
+// MARK: - Token expiry (unit-detection)
+
+/// Mirror of `UsageService.isCachedTokenExpired` so the regression case from
+/// v1.4.2 is covered by XCTest.
+///
+/// Claude Code stored the OAuth token's `expiresAt` in **seconds** (10 digits)
+/// historically and switched to **milliseconds** (13 digits) in newer builds.
+/// The widget must work on both. Values > 1e11 are clearly milliseconds.
+public func isOAuthTokenExpired(
+    expiresAtRaw: Double,
+    now: Date = Date(),
+    bufferSeconds: TimeInterval = 30
+) -> Bool {
+    // Reject NaN / infinity from a corrupted credentials file. Treating them
+    // as "not expired" is safer than as "expired" — the next sync will surface
+    // any real auth failure via the server's 401/403 path.
+    guard expiresAtRaw > 0, expiresAtRaw.isFinite else { return false }
+    let expiresSec = expiresAtRaw > 1e11 ? expiresAtRaw / 1000 : expiresAtRaw
+    let nowSec = now.timeIntervalSince1970
+    return nowSec > (expiresSec - bufferSeconds)
+}
+
 // MARK: - Threshold validation
 
 /// Clamp + reconcile two threshold values so `low < high` and both stay in

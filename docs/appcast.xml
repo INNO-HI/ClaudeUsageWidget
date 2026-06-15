@@ -7,6 +7,29 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.4.3</title>
+            <sparkle:shortVersionString>1.4.3</sparkle:shortVersionString>
+            <sparkle:version>8</sparkle:version>
+            <pubDate>Sun, 15 Jun 2026 14:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Cache safety: race fix, denial cooldown, NaN guard</h2>
+                <ul>
+                    <li>Fixed a thread-race on the credential cache (URLSession bg queue ↔ main thread) that could read garbage</li>
+                    <li>5-minute cooldown after a Keychain denial so users who later click "Always Allow" don't have to restart</li>
+                    <li>NaN / Infinity in expiresAt is now treated as "unknown" rather than "fresh forever"</li>
+                    <li>Whitespace-only credentialPathOverride values are now trimmed away</li>
+                    <li>13 new XCTest cases (total 35) covering all of the above</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.4.3-macos/ClaudeUsageWidget.dmg"
+                length="1983956"
+                type="application/octet-stream"
+                sparkle:edSignature="r3zf/SMxnOp9nnAGUqQ2ACcVYoHiUPAub4yQWKu/KZ/7cnhqsjDlKmp2lMAq19IMHWnkjnT2sQA8YKoyM96aCA==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.4.2</title>
             <sparkle:shortVersionString>1.4.2</sparkle:shortVersionString>
             <sparkle:version>7</sparkle:version>

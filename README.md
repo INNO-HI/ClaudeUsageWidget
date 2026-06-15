@@ -220,7 +220,14 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.4.2 (latest)
+### v1.4.3 (latest)
+- Fixed **thread-race on the credential cache** (URLSession bg ↔ main thread mutation)
+- Added **5-minute denial cooldown** so Keychain "Always Allow" applied after the first prompt is picked up without restarting
+- Defended `isCachedTokenExpired` against **NaN / Infinity** in corrupted credential files
+- Trim whitespace from `credentialPathOverride` before using it as a file path
+- Added 13 regression tests (total 35) covering ms/sec detection, NaN, Infinity, and the exact user-reported `expiresAt` value
+
+### v1.4.2
 - Fixed **`expiresAt` unit mismatch** that re-prompted the Keychain on every sync when Claude Code stored the value in milliseconds — the cache check now auto-detects ms vs seconds
 - Added **unified-logging diagnostics** under subsystem `com.innohi.claudeusagewidget` / category `creds` so users can verify themselves when the Keychain is actually queried
 

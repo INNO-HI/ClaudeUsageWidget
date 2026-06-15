@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.3] — 2026-06-15
+
+### Fixed
+- **Race condition on the credential cache.** `keychainDeniedThisSession` and `cachedCredentials` were written from a URLSession background queue (when the API returned 401/403) while read on the main thread. A struct-copy interleaved with a write-to-nil could yield garbage. `invalidateCachedCredentials()` now `dispatchPrecondition`'s main-thread, and the 401/403 path hops to `DispatchQueue.main.async` before mutating.
+- **Permanent "denied" lockout when the user enables "Always Allow" later.** If the user cancelled the first Keychain prompt and then approved it via System Settings, the `keychainDeniedThisSession` flag stayed `true` forever and the widget refused to retry. A **5-minute denial cooldown** is now applied — after 5 min the next sync retries the Keychain once (subsequent denials reset the timer).
+- **NaN / Infinity in `expiresAt` could make a token appear permanently valid.** `isCachedTokenExpired` and `isOAuthTokenExpired` both gain an `isFinite` guard so a corrupted credentials file can no longer poison the cache silently — the server's 401/403 path will surface the real failure instead.
+- **Whitespace-only `credentialPathOverride`** was accepted from the config file and resulted in silent I/O failure. `loadConfig` now trims with `.whitespacesAndNewlines` before checking emptiness.
+
+### Added
+- 13 new `TokenExpiryTests` covering seconds/milliseconds detection, NaN, Infinity, the exact `expiresAt` value reported by a real user (1781266616544), and the seconds-format scenario that pre-1.4.2 would have corrupted. **Total: 35 tests.**
+
+### Internal
+- Tightened the cache-state contract: all mutations to `cachedCredentials`, `keychainDeniedThisSession`, and `keychainDeniedAt` are now main-thread-only and enforced by `dispatchPrecondition(condition: .onQueue(.main))`.
+
+---
+
 ## [1.4.2] — 2026-06-12
 
 ### Fixed

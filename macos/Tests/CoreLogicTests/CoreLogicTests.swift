@@ -153,6 +153,100 @@ final class FormatResetsInTests: XCTestCase {
     }
 }
 
+final class TokenExpiryTests: XCTestCase {
+    // The v1.4.2 regression: code assumed expiresAt was milliseconds. If a
+    // build of Claude Code stored it in seconds (10-digit Unix timestamp),
+    // the comparison `nowMs > expiresAt - 30_000` would always be true and
+    // every cached token would be treated as expired — re-prompting the
+    // Keychain on every auto-sync. These tests pin the unit-detection
+    // behaviour so it can't silently regress.
+
+    private let now = Date(timeIntervalSince1970: 1_700_000_000)  // 2023-11-14
+
+    func test_zeroExpiresAt_treatedAsNotExpired() {
+        XCTAssertFalse(isOAuthTokenExpired(expiresAtRaw: 0, now: now))
+    }
+
+    func test_negativeExpiresAt_treatedAsNotExpired() {
+        XCTAssertFalse(isOAuthTokenExpired(expiresAtRaw: -1, now: now))
+    }
+
+    func test_secondsFormat_inFuture_notExpired() {
+        // expiresAt 1 hour ahead, in seconds (10 digits)
+        let expiresAt = now.addingTimeInterval(3600).timeIntervalSince1970
+        XCTAssertFalse(isOAuthTokenExpired(expiresAtRaw: expiresAt, now: now))
+    }
+
+    func test_secondsFormat_inPast_expired() {
+        // expiresAt 5 min ago, seconds
+        let expiresAt = now.addingTimeInterval(-300).timeIntervalSince1970
+        XCTAssertTrue(isOAuthTokenExpired(expiresAtRaw: expiresAt, now: now))
+    }
+
+    func test_msFormat_inFuture_notExpired() {
+        // 1 hour ahead, milliseconds (13 digits)
+        let expiresAt = now.addingTimeInterval(3600).timeIntervalSince1970 * 1000
+        XCTAssertFalse(isOAuthTokenExpired(expiresAtRaw: expiresAt, now: now))
+    }
+
+    func test_msFormat_inPast_expired() {
+        let expiresAt = now.addingTimeInterval(-300).timeIntervalSince1970 * 1000
+        XCTAssertTrue(isOAuthTokenExpired(expiresAtRaw: expiresAt, now: now))
+    }
+
+    func test_userActualReportedMsValue() {
+        // The exact value captured from a real user (Claude Code stored ms):
+        //   expiresAt=1781266616544 (13 digits)
+        //   at the time of inspection now=1781240822 (seconds) → ~7 hr remaining.
+        // Pre-1.4.2 ms-only check happened to work for this value; the new
+        // unit-aware check must still return "not expired".
+        let now = Date(timeIntervalSince1970: 1_781_240_822)
+        XCTAssertFalse(isOAuthTokenExpired(expiresAtRaw: 1_781_266_616_544, now: now))
+    }
+
+    func test_secondsFormat_thatPre142WouldHaveCorrupted() {
+        // A seconds-format token 1 hour from now: 10-digit value like 1781244422.
+        // The pre-1.4.2 code did `nowMs > expiresAt - 30_000`. With
+        // nowMs ≈ 1.78e12 and expiresAt ≈ 1.78e9, the comparison was always
+        // true → token marked expired even though it's actually valid for 1h.
+        // The new check correctly detects this is seconds and returns false.
+        let now = Date(timeIntervalSince1970: 1_781_240_822)
+        let expiresAtSeconds: Double = 1_781_244_422  // 1 hr ahead, in seconds
+        XCTAssertFalse(isOAuthTokenExpired(expiresAtRaw: expiresAtSeconds, now: now))
+    }
+
+    func test_bufferRespected_secondsFormat() {
+        // expiresAt is exactly 20s ahead — within the 30s buffer → expired.
+        let expiresAt = now.addingTimeInterval(20).timeIntervalSince1970
+        XCTAssertTrue(isOAuthTokenExpired(expiresAtRaw: expiresAt, now: now))
+    }
+
+    func test_bufferRespected_msFormat() {
+        let expiresAt = now.addingTimeInterval(20).timeIntervalSince1970 * 1000
+        XCTAssertTrue(isOAuthTokenExpired(expiresAtRaw: expiresAt, now: now))
+    }
+
+    func test_customBuffer() {
+        // 45s ahead, 60s buffer → expired; default 30s buffer → not expired.
+        let expiresAt = now.addingTimeInterval(45).timeIntervalSince1970
+        XCTAssertTrue(isOAuthTokenExpired(expiresAtRaw: expiresAt, now: now, bufferSeconds: 60))
+        XCTAssertFalse(isOAuthTokenExpired(expiresAtRaw: expiresAt, now: now, bufferSeconds: 30))
+    }
+
+    func test_nan_treatedAsNotExpired() {
+        // A corrupted credentials file could parse expiresAt as NaN.
+        // We must not crash and must not silently treat the token as "fresh forever".
+        // The chosen policy is `false` — let the server's 401/403 detect the
+        // bad token and trigger a re-read rather than spam the Keychain.
+        XCTAssertFalse(isOAuthTokenExpired(expiresAtRaw: .nan, now: now))
+    }
+
+    func test_infinity_treatedAsNotExpired() {
+        XCTAssertFalse(isOAuthTokenExpired(expiresAtRaw: .infinity, now: now))
+        XCTAssertFalse(isOAuthTokenExpired(expiresAtRaw: -.infinity, now: now))
+    }
+}
+
 final class UsageHistoryPointCodableTests: XCTestCase {
     func test_roundtrip() throws {
         let original = UsageHistoryPoint(

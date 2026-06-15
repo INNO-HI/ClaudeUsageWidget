@@ -64,16 +64,26 @@ class ClaudeUsageService {
     //   2) the access token is past its `expiresAt`,
     //   3) the server returns 401 / 403 (handled by callers via
     //      invalidateCachedCredentials()).
+    //
+    // All cache state is mutated only on the main thread. The URLSession
+    // completion handler hops to main before calling invalidateCachedCredentials
+    // — see fetchUsage().
     private var cachedCredentials: OAuthCredentials?
-    /// If Keychain access was denied / cancelled this session, don't re-prompt
-    /// on every auto-sync — surface "not logged in" until the user explicitly
-    /// retries (via Refresh / multi-account picker).
+    /// If Keychain access was denied / cancelled, don't re-prompt on every
+    /// auto-sync. Reset after `keychainDenialCooldownSec` so a user who clicks
+    /// "Always Allow" in System Settings doesn't have to restart the app.
     private var keychainDeniedThisSession: Bool = false
+    private var keychainDeniedAt: Date?
+    private let keychainDenialCooldownSec: TimeInterval = 300  // 5 minutes
 
+    /// Must be called on the main thread. Background callers (URLSession
+    /// completion handler) hop via DispatchQueue.main.async.
     func invalidateCachedCredentials() {
+        dispatchPrecondition(condition: .onQueue(.main))
         os_log("invalidate-cache", log: credsLog, type: .info)
         cachedCredentials = nil
         keychainDeniedThisSession = false
+        keychainDeniedAt = nil
     }
 
     /// Read credentials, preferring the in-memory cache to avoid spamming the
@@ -109,11 +119,22 @@ class ClaudeUsageService {
         }
         os_log("file-miss path=%{public}@", log: credsLog, type: .info, credentialFilePath)
 
-        // 2) Keychain — only once per session unless cache was explicitly
-        //    invalidated (e.g. by a 401 from the server).
-        if keychainDeniedThisSession {
-            os_log("keychain-denied-cached (skipping prompt)", log: credsLog, type: .info)
+        // 2) Keychain — at most once per cooldown window unless the cache was
+        //    explicitly invalidated (e.g. by a 401 from the server). The
+        //    cooldown means a user who clicks "Always Allow" in System
+        //    Settings is picked up on the next retry without restarting.
+        if keychainDeniedThisSession,
+           let deniedAt = keychainDeniedAt,
+           Date().timeIntervalSince(deniedAt) < keychainDenialCooldownSec {
+            os_log("keychain-denied-cached (skipping prompt, %{public}.0fs since denial)",
+                   log: credsLog, type: .info,
+                   Date().timeIntervalSince(deniedAt))
             return nil
+        }
+        if keychainDeniedThisSession {
+            os_log("keychain-denial-cooldown elapsed — retrying", log: credsLog, type: .info)
+            keychainDeniedThisSession = false
+            keychainDeniedAt = nil
         }
 
         let query: [String: Any] = [
@@ -137,9 +158,10 @@ class ClaudeUsageService {
         }
 
         // Anything else (user cancelled, item missing, errSecAuthFailed)
-        // — flag denied so the next 5-min sync doesn't trigger a fresh prompt.
+        // — flag denied so the next sync doesn't immediately re-prompt.
         os_log("keychain-query FAIL status=%{public}d (%{public}dms)", log: credsLog, type: .info, Int(status), elapsedMs)
         keychainDeniedThisSession = true
+        keychainDeniedAt = Date()
         return nil
     }
 
@@ -152,7 +174,10 @@ class ClaudeUsageService {
     /// we assume seconds. A wrongly-assumed unit would mark every cached token
     /// as expired and re-prompt on every sync — exactly the bug we're fighting.
     private func isCachedTokenExpired(_ creds: OAuthCredentials) -> Bool {
-        guard creds.expiresAt > 0 else { return false }
+        // Defensive: reject NaN / Infinity from a corrupted credentials file,
+        // and ignore zero/negative (= "no expiry data") rather than treating
+        // them as already expired.
+        guard creds.expiresAt > 0, creds.expiresAt.isFinite else { return false }
         let expiresSec = creds.expiresAt > 1e11 ? creds.expiresAt / 1000 : creds.expiresAt
         let nowSec = Date().timeIntervalSince1970
         let expired = nowSec > (expiresSec - 30)
@@ -264,9 +289,10 @@ class ClaudeUsageService {
 
             // READ-ONLY mode: do not refresh. Let Claude Code handle it.
             // Drop the cached token so the next sync re-reads the file (which
-            // Claude Code should have rotated by then).
+            // Claude Code should have rotated by then). Cache state is
+            // main-thread-only, so hop before mutating.
             if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-                self?.invalidateCachedCredentials()
+                DispatchQueue.main.async { self?.invalidateCachedCredentials() }
                 completion(.failure(ServiceError.unauthorized))
                 return
             }

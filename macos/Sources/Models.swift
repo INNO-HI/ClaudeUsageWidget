@@ -992,8 +992,11 @@ class UsageViewModel: ObservableObject {
         if let high = config["alertThresholdHigh"] as? Int, (60...99).contains(high) {
             alertThresholdHigh = high
         }
-        if let path = config["credentialPathOverride"] as? String, !path.isEmpty {
-            credentialPathOverride = path
+        if let path = config["credentialPathOverride"] as? String {
+            let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                credentialPathOverride = trimmed
+            }
         }
         // Keep low < high
         if alertThresholdLow >= alertThresholdHigh {
