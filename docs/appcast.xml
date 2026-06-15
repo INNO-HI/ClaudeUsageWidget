@@ -7,6 +7,28 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.5.0</title>
+            <sparkle:shortVersionString>1.5.0</sparkle:shortVersionString>
+            <sparkle:version>9</sparkle:version>
+            <pubDate>Sun, 15 Jun 2026 16:30:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Three-expression menu-bar face: idle, syncing, Claude-active</h2>
+                <ul>
+                    <li>Idle dots (●●) when nothing is happening</li>
+                    <li>Blinking slits (−−) while a sync is in flight</li>
+                    <li>Wide alert eyes (◉◉) when Claude Code is actively running on your machine (detected via ~/.claude-status.json mtime)</li>
+                    <li>All eye animation respects the system Reduce Motion setting</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.5.0-macos/ClaudeUsageWidget.dmg"
+                length="2282892"
+                type="application/octet-stream"
+                sparkle:edSignature="nby49fePqiLxwBYiU24sGIc76WBmfhArxDfqv5hOy2Z/iyrG5CAHRZXKdZp+9zckr7WYp9cIJfPtp01ag3fVCQ==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.4.3</title>
             <sparkle:shortVersionString>1.4.3</sparkle:shortVersionString>
             <sparkle:version>8</sparkle:version>

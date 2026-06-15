@@ -435,6 +435,10 @@ class UsageViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var errorKind: ErrorKind? = nil
     @Published var credentialStatus: CredentialStatus = .checking
+    /// True when ~/.claude-status.json was written within the last 30 s,
+    /// meaning Claude Code itself is actively running on the user's machine.
+    /// AppDelegate uses this to switch the menu-bar face to "active eyes".
+    @Published var claudeActivelyRunning: Bool = false
 
     enum ErrorKind {
         case credentials   // not logged in / token expired
@@ -465,6 +469,7 @@ class UsageViewModel: ObservableObject {
     private let service = ClaudeUsageService()
     private var syncTimer: Timer?
     private var moodTimer: Timer?
+    private var claudeActivityTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
     private var consecutiveFailures: Int = 0  // for exponential backoff
     // Notification de-dupe per session (reset when a new session starts)
@@ -481,6 +486,7 @@ class UsageViewModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             self?.setupAutoSync()
             self?.setupMoodDecay()
+            self?.setupClaudeActivityWatch()
         }
 
         $syncInterval
@@ -890,6 +896,39 @@ class UsageViewModel: ObservableObject {
             if self?.buddyState == .happy {
                 self?.buddyState = .idle
             }
+        }
+    }
+
+    // MARK: - Claude Code activity watch (drives the menu-bar face)
+
+    /// Claude Code's status line writes to `~/.claude-status.json` while it's
+    /// running. If the file's mtime is within the last 30 s, we treat Claude
+    /// as actively used and AppDelegate switches the icon to "alert eyes".
+    private static let claudeStatusPath = NSHomeDirectory() + "/.claude-status.json"
+    private static let claudeActivityFreshnessSec: TimeInterval = 30
+    private static let claudeActivityPollSec: TimeInterval = 5
+
+    private func setupClaudeActivityWatch() {
+        claudeActivityTimer?.invalidate()
+        updateClaudeActivityFlag()  // initial check
+        let timer = Timer(timeInterval: Self.claudeActivityPollSec, repeats: true) { [weak self] _ in
+            self?.updateClaudeActivityFlag()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        claudeActivityTimer = timer
+    }
+
+    private func updateClaudeActivityFlag() {
+        let path = Self.claudeStatusPath
+        let active: Bool
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+           let mtime = attrs[.modificationDate] as? Date {
+            active = Date().timeIntervalSince(mtime) < Self.claudeActivityFreshnessSec
+        } else {
+            active = false
+        }
+        if active != claudeActivelyRunning {
+            claudeActivelyRunning = active
         }
     }
 

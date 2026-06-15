@@ -770,7 +770,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.4.3")
+            Text("v1.5.0")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -1272,7 +1272,20 @@ private func menuBarIconColor(for percent: Double) -> NSColor {
     return NSColor(red: 217.0/255.0, green: 119.0/255.0, blue: 87.0/255.0, alpha: 1.0)        // #D97757 (Claude orange)
 }
 
-func createMenuBarIcon(size: NSSize = NSSize(width: 18, height: 18), percent: Double = 0) -> NSImage {
+/// Three expressions the menu-bar face can wear. The body silhouette stays
+/// constant; only the two eye shapes change.
+///   .idle      — calm dots ●● (default)
+///   .syncing   — horizontal slits −− (blinking; AppDelegate alternates with .idle)
+///   .activeClaude — wide alert eyes ◉◉ (Claude Code currently running)
+enum IconExpression {
+    case idle, syncing, activeClaude
+}
+
+func createMenuBarIcon(
+    size: NSSize = NSSize(width: 18, height: 18),
+    percent: Double = 0,
+    expression: IconExpression = .idle
+) -> NSImage {
     let fillColor = menuBarIconColor(for: percent)
     let image = NSImage(size: size, flipped: false) { rect in
         let w = rect.width / 24
@@ -1280,7 +1293,7 @@ func createMenuBarIcon(size: NSSize = NSSize(width: 18, height: 18), percent: Do
 
         let path = NSBezierPath()
 
-        // Main body
+        // Main body (unchanged across expressions)
         path.move(to: NSPoint(x: 20.998 * w, y: rect.height - 10.949 * h))
         path.line(to: NSPoint(x: 24 * w, y: rect.height - 10.949 * h))
         path.line(to: NSPoint(x: 24 * w, y: rect.height - 14.051 * h))
@@ -1296,7 +1309,7 @@ func createMenuBarIcon(size: NSSize = NSSize(width: 18, height: 18), percent: Do
         path.line(to: NSPoint(x: 15 * w, y: rect.height - 17.079 * h))
         path.line(to: NSPoint(x: 9 * w, y: rect.height - 17.079 * h))
         path.line(to: NSPoint(x: 9 * w, y: rect.height - 20 * h))
-        path.line(to: NSPoint(x: 7.488 * w, y: rect.height - 17.079 * h))  // Fix: skip to match
+        path.line(to: NSPoint(x: 7.488 * w, y: rect.height - 17.079 * h))
         path.line(to: NSPoint(x: 6 * w, y: rect.height - 17.079 * h))
         path.line(to: NSPoint(x: 6 * w, y: rect.height - 20 * h))
         path.line(to: NSPoint(x: 4.487 * w, y: rect.height - 20 * h))
@@ -1310,29 +1323,62 @@ func createMenuBarIcon(size: NSSize = NSSize(width: 18, height: 18), percent: Do
         path.line(to: NSPoint(x: 20.998 * w, y: rect.height - 5 * h))
         path.close()
 
-        // Draw filled body (color reflects usage percent)
         fillColor.setFill()
         path.fill()
 
-        // Eyes (cutout - draw in background color for template)
-        let leftEye = NSBezierPath(rect: NSRect(
-            x: 6 * w, y: rect.height - 10.949 * h,
-            width: 1.488 * w, height: -(10.949 - 8.102) * h
-        ))
-        let rightEye = NSBezierPath(rect: NSRect(
-            x: 16.51 * w, y: rect.height - 10.949 * h,
-            width: 1.49 * w, height: -(10.949 - 8.102) * h
-        ))
+        // Eye geometry — anchor points for the two eye sockets.
+        // Default rectangle is (1.488w × 2.847h), centred at the original
+        // SVG eye positions. Each expression tweaks the box.
+        let baseLeftX  = 6.0    * w
+        let baseRightX = 16.51  * w
+        let baseY      = rect.height - 10.949 * h   // top edge of socket
+        let baseW      = 1.488  * w
+        let baseH      = -(10.949 - 8.102) * h      // negative because we draw upward in flipped coords
 
-        NSColor.clear.setFill()
-        leftEye.fill()
-        rightEye.fill()
+        let leftRect:  NSRect
+        let rightRect: NSRect
+
+        switch expression {
+        case .idle:
+            // ●● — current/calm
+            leftRect  = NSRect(x: baseLeftX,  y: baseY, width: baseW, height: baseH)
+            rightRect = NSRect(x: baseRightX, y: baseY, width: baseW, height: baseH)
+
+        case .syncing:
+            // −− — horizontal slits; AppDelegate alternates with .idle for a blink
+            let slitH = baseH * 0.35
+            let slitY = baseY + (baseH - slitH) / 2  // vertically centred in the original socket
+            leftRect  = NSRect(x: baseLeftX,  y: slitY, width: baseW, height: slitH)
+            rightRect = NSRect(x: baseRightX, y: slitY, width: baseW, height: slitH)
+
+        case .activeClaude:
+            // ◉◉ — wider and slightly taller, "alert"
+            let wider = baseW * 1.25
+            let taller = baseH * 1.20
+            let dxL = (wider - baseW) / 2
+            let dxR = (wider - baseW) / 2
+            let dy  = (taller - baseH) / 2
+            leftRect  = NSRect(x: baseLeftX  - dxL, y: baseY + dy, width: wider, height: taller)
+            rightRect = NSRect(x: baseRightX - dxR, y: baseY + dy, width: wider, height: taller)
+        }
+
+        NSBezierPath(rect: leftRect).fill(using: .clear)
+        NSBezierPath(rect: rightRect).fill(using: .clear)
 
         return true
     }
 
     image.isTemplate = false
     return image
+}
+
+private extension NSBezierPath {
+    /// Fill the path with the given colour. Tiny helper to keep the icon
+    /// drawing loop readable.
+    func fill(using color: NSColor) {
+        color.setFill()
+        self.fill()
+    }
 }
 
 // MARK: - Session Ring (circular progress with center label)

@@ -15,6 +15,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var bouncePhase: CGFloat = 0
     private var pulseTimer: Timer?
     private var pulsePhase: CGFloat = 0
+    private var blinkTimer: Timer?
+    private var blinkOpen: Bool = false  // true = dots (.idle), false = slits (.syncing)
 
     // Sparkle auto-updater (starts checking on launch per Info.plist settings)
     let updaterController: SPUStandardUpdaterController
@@ -81,6 +83,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                 }
                 .store(in: &cancellables)
+
+            // Re-paint when Claude Code activity changes — drives the .activeClaude face
+            viewModel.$claudeActivelyRunning
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    if let btn = self?.statusItem.button {
+                        self?.updateStatusBarIcon(button: btn)
+                    }
+                }
+                .store(in: &cancellables)
         }
 
         // Reconcile Launch-at-Login flag with actual system state
@@ -110,13 +122,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateStatusBarIcon(button: NSStatusBarButton, syncing: Bool = false) {
+        let pct = viewModel.usage.isConnected ? viewModel.usage.sessionUsagePercent : 0
+        // Three faces — picked by priority: syncing > claude active > idle.
+        // The syncing face blinks (handled by startBlinkAnimation below).
+        let expression: IconExpression
         if syncing {
-            let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
-            button.image = NSImage(systemSymbolName: "arrow.triangle.2.circlepath", accessibilityDescription: "Syncing")?.withSymbolConfiguration(config)
+            expression = .syncing
+        } else if viewModel.claudeActivelyRunning {
+            expression = .activeClaude
         } else {
-            let pct = viewModel.usage.isConnected ? viewModel.usage.sessionUsagePercent : 0
-            button.image = createMenuBarIcon(size: NSSize(width: 18, height: 18), percent: pct)
+            expression = .idle
         }
+        button.image = createMenuBarIcon(size: NSSize(width: 18, height: 18),
+                                          percent: pct,
+                                          expression: expression)
 
         let text = viewModel.menuBarText
         button.title = text.isEmpty ? "" : " \(text)"
@@ -124,6 +143,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Rich tooltip — hover the menu bar icon for the full status
         button.toolTip = buildTooltip()
+
+        // Sync-state blink: alternate slit ↔ dots every 250 ms while syncing.
+        if syncing {
+            startBlinkAnimation()
+        } else {
+            stopBlinkAnimation()
+        }
 
         // Manage warning pulse based on user's low threshold
         let shouldPulse = !syncing
@@ -205,6 +231,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         pulseTimer?.invalidate()
         pulseTimer = nil
         statusItem.button?.alphaValue = 1.0
+    }
+
+    // MARK: - Sync Blink (alternates eyes between dots and slits)
+
+    private func startBlinkAnimation() {
+        guard blinkTimer == nil else { return }
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return }
+        blinkOpen = false
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            guard let self = self, let button = self.statusItem.button else { return }
+            self.blinkOpen.toggle()
+            let pct = self.viewModel.usage.isConnected ? self.viewModel.usage.sessionUsagePercent : 0
+            let face: IconExpression = self.blinkOpen ? .idle : .syncing
+            button.image = createMenuBarIcon(size: NSSize(width: 18, height: 18),
+                                              percent: pct,
+                                              expression: face)
+        }
+        blinkTimer = timer
+    }
+
+    private func stopBlinkAnimation() {
+        blinkTimer?.invalidate()
+        blinkTimer = nil
     }
 
     @objc func togglePopover() {

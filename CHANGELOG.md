@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] — 2026-06-15
+
+### Added
+- **Menu-bar face has three expressions** that swap based on what the widget knows about your machine:
+  - **Idle (default)** — calm dots `●●` when nothing is happening.
+  - **Syncing** — horizontal slits `−−` blinking every 0.25 s while a fetch is in flight (Reduce Motion turns the blink off; the slit shape stays).
+  - **Active Claude** — wider, taller eyes `◉◉` when Claude Code itself is currently running on your machine.
+- **Claude Code activity detection** — the widget polls `~/.claude-status.json`'s modification time every 5 s. If it was written within the last 30 s, Claude Code is treated as active and the icon switches to the alert face. Exposed via `UsageViewModel.claudeActivelyRunning` and surfaced to AppDelegate via a Combine sink.
+
+### Internal
+- `createMenuBarIcon(size:percent:expression:)` gains an `expression: IconExpression` parameter (`.idle / .syncing / .activeClaude`). The body silhouette is unchanged across expressions; only the two eye rectangles are re-sized and re-positioned.
+- New `blinkTimer` in `AppDelegate` toggles the `.syncing` face every 250 ms; respects `accessibilityDisplayShouldReduceMotion` so it stops on a single slit frame for users with Reduce Motion on.
+- New `claudeActivityTimer` in `UsageViewModel` (5 s repeat, main run-loop, `.common` mode).
+
+---
+
 ## [1.4.3] — 2026-06-15
 
 ### Fixed

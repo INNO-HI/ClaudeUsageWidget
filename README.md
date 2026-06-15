@@ -220,7 +220,12 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.4.3 (latest)
+### v1.5.0 (latest)
+- Added **3-expression menu-bar face** — idle dots (●●), blinking slits (−−) while syncing, wide alert eyes (◉◉) while Claude Code is actively running
+- Claude activity detected via `~/.claude-status.json` mtime (writes within last 30 s = active)
+- All eye animation honours the system **Reduce Motion** setting
+
+### v1.4.3
 - Fixed **thread-race on the credential cache** (URLSession bg ↔ main thread mutation)
 - Added **5-minute denial cooldown** so Keychain "Always Allow" applied after the first prompt is picked up without restarting
 - Defended `isCachedTokenExpired` against **NaN / Infinity** in corrupted credential files
