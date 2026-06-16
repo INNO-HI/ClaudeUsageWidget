@@ -220,7 +220,12 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.5.3 (latest)
+### v1.5.4 (latest)
+- Added **sleeping face** (closed eyes + z) when Claude is running but no recent session activity
+- "Active" now means real work — `~/.claude/projects/` file modified in last 60s, not just process exists
+- Fixes the v1.5.3 UX where VS Code Claude Code kept the icon in active state forever
+
+### v1.5.3
 - Added **Wobble Shake** motion — menu-bar icon vibrates ±1.5 px side-to-side at ~3 Hz when Claude Code is actively running ("working hard" signal)
 - **Eyes switched to solid white** rectangles instead of transparent cutouts (which revealed the wallpaper through the menu bar)
 

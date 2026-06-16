@@ -446,10 +446,15 @@ class UsageViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var errorKind: ErrorKind? = nil
     @Published var credentialStatus: CredentialStatus = .checking
-    /// True when ~/.claude-status.json was written within the last 30 s,
-    /// meaning Claude Code itself is actively running on the user's machine.
+    /// True when Claude Code has written to a session file in the last 60 s
+    /// (or when it's running on a brand-new install with no projects yet).
     /// AppDelegate uses this to switch the menu-bar face to "active eyes".
     @Published var claudeActivelyRunning: Bool = false
+    /// True when Claude Code's CLI binary is running but no session file has
+    /// been written in the last 60 s. Surfaces as the "sleeping" face (closed
+    /// eyes + z). When `false` together with `claudeActivelyRunning=false`,
+    /// Claude isn't running at all and the default idle dots are shown.
+    @Published var claudeSleeping: Bool = false
 
     enum ErrorKind {
         case credentials   // not logged in / token expired
@@ -932,39 +937,82 @@ class UsageViewModel: ObservableObject {
         claudeActivityTimer = timer
     }
 
-    /// Runs `pgrep -x claude`. The original v1.5.0 implementation checked
-    /// `~/.claude-status.json`'s mtime, but that file only ever exists if the
-    /// user has configured a status-line script (most users haven't). pgrep
-    /// directly checks for a running Claude Code CLI binary, which is what
-    /// "Claude actively running" really means.
+    /// Three-tier detection — the result drives the menu-bar face:
+    ///
+    ///   ACTIVE  — a file under ~/.claude/projects/ was modified in the
+    ///             last 60 s (Claude is streaming a response or you just
+    ///             sent a message).
+    ///   SLEEPING — the `claude` CLI binary is running but no session
+    ///              file changed in the last 60 s (Claude is idle but
+    ///              available, e.g. VS Code extension parked open).
+    ///   IDLE    — `claude` isn't running at all.
     ///
     /// Must run off the main thread. Hops back to main to publish the result.
     private func queryClaudeRunning() {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-        task.arguments = ["-x", "claude"]
-        task.standardOutput = Pipe()
-        task.standardError = Pipe()
+        let projectsDir = NSHomeDirectory() + "/.claude/projects"
+        var recentlyWorking = false
+        var processAlive = false
 
-        let active: Bool
-        do {
-            try task.run()
-            task.waitUntilExit()
-            // pgrep exit codes: 0 = at least one match, 1 = no match, 2 = error
-            active = (task.terminationStatus == 0)
-        } catch {
-            active = false
+        // 1) Are there any project files modified within the last minute?
+        if FileManager.default.fileExists(atPath: projectsDir) {
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/find")
+            task.arguments = [
+                projectsDir,
+                "-type", "f",
+                "-mmin", "-1",  // less than 1 minute since modification
+                "-print", "-quit"  // first match wins, exit early
+            ]
+            let pipe = Pipe()
+            task.standardOutput = pipe
+            task.standardError = Pipe()
+            do {
+                try task.run()
+                task.waitUntilExit()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                recentlyWorking = !data.isEmpty
+            } catch {
+                recentlyWorking = false
+            }
         }
 
-        os_log("pgrep claude → %{public}@ (status=%{public}d)",
+        // 2) Independent: is the `claude` binary itself running?
+        let pgrep = Process()
+        pgrep.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+        pgrep.arguments = ["-x", "claude"]
+        pgrep.standardOutput = Pipe()
+        pgrep.standardError = Pipe()
+        do {
+            try pgrep.run()
+            pgrep.waitUntilExit()
+            processAlive = (pgrep.terminationStatus == 0)
+        } catch {
+            processAlive = false
+        }
+
+        // Project-file activity implies the binary is alive; cover the
+        // brand-new-install corner case where ~/.claude/projects doesn't
+        // exist yet but Claude IS running.
+        let active = recentlyWorking
+        let sleeping = !recentlyWorking && processAlive
+
+        let label: String
+        if active        { label = "ACTIVE" }
+        else if sleeping { label = "SLEEPING" }
+        else             { label = "idle" }
+        os_log("claude → %{public}@ (recentFile=%{public}@ procAlive=%{public}@)",
                log: activityLog, type: .info,
-               active ? "ACTIVE" : "idle",
-               Int(task.terminationStatus))
+               label,
+               recentlyWorking ? "yes" : "no",
+               processAlive ? "yes" : "no")
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             if active != self.claudeActivelyRunning {
                 self.claudeActivelyRunning = active
+            }
+            if sleeping != self.claudeSleeping {
+                self.claudeSleeping = sleeping
             }
         }
     }

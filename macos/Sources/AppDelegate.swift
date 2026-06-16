@@ -96,6 +96,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 .store(in: &cancellables)
 
+            // Re-paint when Claude transitions in/out of "sleeping" — drives the .sleeping face
+            viewModel.$claudeSleeping
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    if let btn = self?.statusItem.button {
+                        self?.updateStatusBarIcon(button: btn)
+                    }
+                }
+                .store(in: &cancellables)
+
             // Re-paint when the user toggles the animated face off / on
             viewModel.$showMenuBarExpressions
                 .receive(on: DispatchQueue.main)
@@ -135,8 +145,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateStatusBarIcon(button: NSStatusBarButton, syncing: Bool = false) {
         let pct = viewModel.usage.isConnected ? viewModel.usage.sessionUsagePercent : 0
-        // Three faces — picked by priority: syncing > claude active > idle.
-        // The syncing face blinks (handled by startBlinkAnimation below).
+        // Four faces — picked by priority:
+        //   syncing > claude actively working > claude sleeping > idle
         // If the user has turned the animated face off in Settings, always
         // use .idle regardless of state.
         let expression: IconExpression
@@ -146,6 +156,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             expression = .syncing
         } else if viewModel.claudeActivelyRunning {
             expression = .activeClaude
+        } else if viewModel.claudeSleeping {
+            expression = .sleeping
         } else {
             expression = .idle
         }

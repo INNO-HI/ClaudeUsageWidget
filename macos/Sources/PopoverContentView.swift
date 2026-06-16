@@ -772,7 +772,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.5.3")
+            Text("v1.5.4")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -1274,13 +1274,14 @@ private func menuBarIconColor(for percent: Double) -> NSColor {
     return NSColor(red: 217.0/255.0, green: 119.0/255.0, blue: 87.0/255.0, alpha: 1.0)        // #D97757 (Claude orange)
 }
 
-/// Three expressions the menu-bar face can wear. The body silhouette stays
-/// constant; only the two eye shapes change.
-///   .idle      — calm dots ●● (default)
-///   .syncing   — horizontal slits −− (blinking; AppDelegate alternates with .idle)
-///   .activeClaude — wide alert eyes ◉◉ (Claude Code currently running)
+/// Four expressions the menu-bar face can wear. The body silhouette stays
+/// constant; only the eyes (and a tiny "z" mark for sleeping) change.
+///   .idle         — calm dots ●● (Claude binary not running)
+///   .syncing      — horizontal slits −− (blinking; AppDelegate alternates with .idle)
+///   .activeClaude — wide alert eyes ◉◉ + side-to-side wobble (Claude working)
+///   .sleeping     — eyes closed + small "z" mark (Claude running but no recent activity)
 enum IconExpression {
-    case idle, syncing, activeClaude
+    case idle, syncing, activeClaude, sleeping
 }
 
 func createMenuBarIcon(
@@ -1365,15 +1366,44 @@ func createMenuBarIcon(
                                width: wider, height: taller)
             rightRect = NSRect(x: baseRightCenterX - wider/2, y: baseCenterY - taller/2,
                                width: wider, height: taller)
+
+        case .sleeping:
+            // −− closed eyes (slim horizontal lines, static — no blink)
+            let lidH = max(1, h * 0.4)  // ~1 px on a 18×18 icon
+            leftRect  = NSRect(x: baseLeftCenterX  - baseW/2, y: baseCenterY - lidH/2,
+                               width: baseW, height: lidH)
+            rightRect = NSRect(x: baseRightCenterX - baseW/2, y: baseCenterY - lidH/2,
+                               width: baseW, height: lidH)
         }
 
-        // Body first (solid fill), then eyes on top as solid dark rectangles.
+        // Body first (solid fill), then eyes on top as solid white rectangles.
         fillColor.setFill()
         path.fill()
 
         eyeColor.setFill()
         NSBezierPath(rect: leftRect).fill()
         NSBezierPath(rect: rightRect).fill()
+
+        // .sleeping gets a tiny "z" mark in the top-right corner so the
+        // closed eyes read as "sleeping" rather than "syncing slits".
+        // Drawn as a thin Z made of three short segments.
+        if expression == .sleeping {
+            let zPath = NSBezierPath()
+            zPath.lineWidth = max(0.75, w * 0.5)
+            zPath.lineCapStyle = .round
+            let zLeft   = 20.5 * w
+            let zRight  = 23.0 * w
+            let zTop    = rect.height - 4.0 * h
+            let zMid    = rect.height - 5.5 * h
+            let zBottom = rect.height - 7.0 * h
+            zPath.move(to: NSPoint(x: zLeft,  y: zTop))     // top horizontal
+            zPath.line(to: NSPoint(x: zRight, y: zTop))
+            zPath.line(to: NSPoint(x: zLeft,  y: zBottom))  // diagonal
+            zPath.line(to: NSPoint(x: zRight, y: zBottom))  // bottom horizontal
+            eyeColor.setStroke()
+            zPath.stroke()
+            _ = zMid  // future use
+        }
 
         return true
     }

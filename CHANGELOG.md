@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.4] — 2026-06-16
+
+### Added
+- **Fourth menu-bar expression: `.sleeping`** — closed eyes with a small "z" mark in the top-right corner. Shown when the `claude` CLI binary is running but no session file under `~/.claude/projects/` has been written in the last 60 s (e.g. VS Code Claude Code extension parked open between requests).
+- Three-tier activity detection driving four faces:
+  - **ACTIVE** (wide eyes + wobble) — `~/.claude/projects/` file modified in last 60 s
+  - **SLEEPING** (closed eyes + z) — `claude` running but no recent file activity
+  - **SYNCING** (slits, blinking) — widget is fetching usage
+  - **IDLE** (calm dots) — Claude isn't running at all
+
+### Changed
+- `queryClaudeRunning()` now uses `find ~/.claude/projects -mmin -1 -type f -print -quit` for the "actively working" check, with `pgrep -x claude` running alongside to distinguish ACTIVE from SLEEPING. Logs now read:
+  ```
+  claude → ACTIVE   (recentFile=yes procAlive=yes)
+  claude → SLEEPING (recentFile=no  procAlive=yes)
+  claude → idle     (recentFile=no  procAlive=no)
+  ```
+- This fixes the v1.5.3 UX issue where the icon stayed in the wide-eyed ACTIVE face whenever Claude Code was running in the background — most VS Code users were never seeing the calm default eyes.
+
+### Internal
+- New `@Published var claudeSleeping: Bool` on `UsageViewModel`; AppDelegate's Combine sinks now include `$claudeSleeping`.
+- Icon priority unchanged at the top: syncing > activeClaude > sleeping > idle.
+
+---
+
 ## [1.5.3] — 2026-06-16
 
 ### Added

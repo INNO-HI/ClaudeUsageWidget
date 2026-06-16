@@ -7,6 +7,27 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.5.4</title>
+            <sparkle:shortVersionString>1.5.4</sparkle:shortVersionString>
+            <sparkle:version>13</sparkle:version>
+            <pubDate>Tue, 16 Jun 2026 18:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Sleeping face + 3-tier Claude activity detection</h2>
+                <ul>
+                    <li>New .sleeping face: closed eyes + tiny z mark, shown when Claude is running but no session file has changed in the last 60s</li>
+                    <li>"Active" now means real work — file under ~/.claude/projects was modified within 60s (not just process exists)</li>
+                    <li>Fixes v1.5.3 UX where VS Code Claude Code extension kept the icon in ACTIVE forever</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.5.4-macos/ClaudeUsageWidget.dmg"
+                length="2289563"
+                type="application/octet-stream"
+                sparkle:edSignature="vVO6mykdrPvEDfFxC28R6UsB7dZQY5FDxvbQKVGnj18eaCYZNKOZFh5kfdvpoXMMLPptxx5NWI5tuGwHGOacBA==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.5.3</title>
             <sparkle:shortVersionString>1.5.3</sparkle:shortVersionString>
             <sparkle:version>12</sparkle:version>
