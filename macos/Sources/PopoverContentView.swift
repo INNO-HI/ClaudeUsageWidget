@@ -772,7 +772,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.5.2")
+            Text("v1.5.3")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -1289,17 +1289,14 @@ func createMenuBarIcon(
     expression: IconExpression = .idle
 ) -> NSImage {
     let fillColor = menuBarIconColor(for: percent)
+    // Eyes painted in white — high contrast on the warm orange/red/amber
+    // body so they read clearly on both light and dark menu bars.
+    let eyeColor = NSColor.white
     let image = NSImage(size: size, flipped: false) { rect in
         let w = rect.width / 24
         let h = rect.height / 24
 
         let path = NSBezierPath()
-        // Even-odd winding rule — adding the eye rectangles as sub-paths of
-        // the body path turns them into actual transparent holes when we
-        // fill once at the end. The old approach (`NSColor.clear.fill()`)
-        // painted transparent pixels on top of the orange body, which
-        // composites to "no change" — the eyes were never visible.
-        path.windingRule = .evenOdd
 
         // Main body (unchanged across expressions)
         path.move(to: NSPoint(x: 20.998 * w, y: rect.height - 10.949 * h))
@@ -1370,13 +1367,13 @@ func createMenuBarIcon(
                                width: wider, height: taller)
         }
 
-        // Append eye rectangles as sub-paths. Combined with .evenOdd above,
-        // these become genuine holes in the body when we fill once.
-        path.appendRect(leftRect)
-        path.appendRect(rightRect)
-
+        // Body first (solid fill), then eyes on top as solid dark rectangles.
         fillColor.setFill()
         path.fill()
+
+        eyeColor.setFill()
+        NSBezierPath(rect: leftRect).fill()
+        NSBezierPath(rect: rightRect).fill()
 
         return true
     }

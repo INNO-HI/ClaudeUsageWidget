@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.3] — 2026-06-16
+
+### Added
+- **Wobble Shake motion** — when Claude Code is actively running, the menu-bar icon now vibrates side-to-side ±1.5 px at ~3 Hz so the icon visibly "works hard" rather than just changing eye shape. Disables itself during sync (the bounce takes the y axis) and when the user turns off "Animated menu-bar face" in Settings. Respects system Reduce Motion.
+
+### Changed
+- **Eyes are now solid white rectangles** instead of transparent cutouts. The v1.5.2 even-odd hole approach revealed whatever wallpaper happened to sit behind the menu bar, which looked random and inconsistent. White reads cleanly on the warm orange / amber / red body colour at every usage threshold and on both light and dark menu bars.
+
+### Internal
+- New `wobbleTimer` + `wobblePhase` in AppDelegate; 0.03 s interval, `sin(phase) * 1.5` x-offset.
+- Start/stop driven by `(shouldWobble = !syncing && claudeActivelyRunning && showMenuBarExpressions)` inside the existing `updateStatusBarIcon` decision tree.
+
+---
+
 ## [1.5.2] — 2026-06-15
 
 ### Fixed

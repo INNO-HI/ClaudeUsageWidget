@@ -17,6 +17,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var pulsePhase: CGFloat = 0
     private var blinkTimer: Timer?
     private var blinkOpen: Bool = false  // true = dots (.idle), false = slits (.syncing)
+    private var wobbleTimer: Timer?
+    private var wobblePhase: CGFloat = 0
 
     // Sparkle auto-updater (starts checking on launch per Info.plist settings)
     let updaterController: SPUStandardUpdaterController
@@ -174,6 +176,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             stopPulseAnimation()
         }
+
+        // Wobble shake when Claude Code is actively running (and we're not
+        // already syncing — sync's bounce takes priority on the y axis).
+        let shouldWobble = !syncing
+            && viewModel.claudeActivelyRunning
+            && viewModel.showMenuBarExpressions
+        if shouldWobble {
+            startWobbleAnimation()
+        } else {
+            stopWobbleAnimation()
+        }
     }
 
     private func buildTooltip() -> String {
@@ -268,6 +281,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func stopBlinkAnimation() {
         blinkTimer?.invalidate()
         blinkTimer = nil
+    }
+
+    // MARK: - Wobble Shake (Claude actively running)
+
+    /// Energetic horizontal vibration to signal "Claude Code is actively
+    /// running on this machine". ±1.5 px at ~3 Hz — visible enough to draw
+    /// the eye but not big enough to bump neighbouring menu-bar icons.
+    private func startWobbleAnimation() {
+        guard wobbleTimer == nil else { return }
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return }
+        wobblePhase = 0
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.03, repeats: true) { [weak self] _ in
+            guard let self = self, let button = self.statusItem.button else { return }
+            self.wobblePhase += 0.6
+            let offset = sin(self.wobblePhase) * 1.5
+            button.frame.origin.x = offset
+        }
+        wobbleTimer = timer
+    }
+
+    private func stopWobbleAnimation() {
+        wobbleTimer?.invalidate()
+        wobbleTimer = nil
+        if let button = statusItem.button {
+            button.frame.origin.x = 0
+        }
     }
 
     @objc func togglePopover() {

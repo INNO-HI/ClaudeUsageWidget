@@ -7,6 +7,27 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.5.3</title>
+            <sparkle:shortVersionString>1.5.3</sparkle:shortVersionString>
+            <sparkle:version>12</sparkle:version>
+            <pubDate>Tue, 16 Jun 2026 17:30:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Wobble Shake motion + solid white eyes</h2>
+                <ul>
+                    <li>When Claude Code is actively running, the menu-bar icon now vibrates side-to-side ±1.5 px at ~3 Hz — visibly "working hard" rather than just changing eye shape</li>
+                    <li>Eyes switched from transparent cutouts (which revealed wallpaper) to solid white rectangles — clean high contrast on any menu bar background</li>
+                    <li>Wobble respects Reduce Motion and the Settings → "Animated menu-bar face" toggle</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.5.3-macos/ClaudeUsageWidget.dmg"
+                length="2287484"
+                type="application/octet-stream"
+                sparkle:edSignature="ZRae5hP6nQeLzyQzID48UFnmDoGyYhI+5WO6sa4eUuJE8OgiNuiqUmA2uFC3b6X+LzMBa2CNNfOaV18LmtVrDg==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.5.2</title>
             <sparkle:shortVersionString>1.5.2</sparkle:shortVersionString>
             <sparkle:version>11</sparkle:version>

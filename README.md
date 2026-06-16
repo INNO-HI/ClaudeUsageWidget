@@ -220,7 +220,11 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.5.2 (latest)
+### v1.5.3 (latest)
+- Added **Wobble Shake** motion — menu-bar icon vibrates ±1.5 px side-to-side at ~3 Hz when Claude Code is actively running ("working hard" signal)
+- **Eyes switched to solid white** rectangles instead of transparent cutouts (which revealed the wallpaper through the menu bar)
+
+### v1.5.2
 - Fixed **eyes were invisible** on the menu-bar icon — `NSColor.clear` doesn't actually carve through, so the body stayed solid. Now uses `windingRule=.evenOdd` to produce real transparent cutouts. Eye box doubled for visibility at 18×18
 
 ### v1.5.1
