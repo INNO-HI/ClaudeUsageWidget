@@ -122,6 +122,28 @@ public func sparklineSamples(
     return out
 }
 
+// MARK: - Claude Code activity tiering
+//
+// v1.5.4 introduced a three-way state that drives the menu-bar face. The
+// classification rule itself has no I/O so it lives here alongside other
+// pure logic — the sub-process spawns that produce the two inputs are in
+// the app target's Models.swift.
+
+public enum ClaudeActivity: String, Equatable, CaseIterable {
+    case idle
+    case sleeping
+    case active
+}
+
+/// Combine the two probe results into a single tier. This is intentionally
+/// strict: any file-change signal wins, otherwise a live binary wins,
+/// otherwise nothing.
+public func classifyClaudeActivity(recentlyWorking: Bool, processAlive: Bool) -> ClaudeActivity {
+    if recentlyWorking { return .active }
+    if processAlive    { return .sleeping }
+    return .idle
+}
+
 // MARK: - Token expiry (unit-detection)
 
 /// Mirror of `UsageService.isCachedTokenExpired` so the regression case from

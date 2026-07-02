@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.5] — 2026-06-17
+
+### Changed
+- **Idle eyes shrunk to small tidy dots** (0.55× the previous rectangles). Reads as a calm resting face instead of a robot stare.
+
+### Fixed
+- **Menu-bar silhouette parity** — the AppKit body path was missing the `(7.488, 20)` vertex present in the SwiftUI `ClaudeCodeIconShape`, cutting off one of the "hat prongs" on the menu-bar version only. The two icons now match pixel-for-pixel at the silhouette level.
+- **`ACTIVE → SLEEPING` face-flicker.** The two `@Published` bools (`claudeActivelyRunning` + `claudeSleeping`) transitioned separately, so the icon briefly rendered as `.idle` between the two Combine emissions. Consolidated into a single `@Published var claudeActivity: ClaudeActivity` enum — one publisher, one transition per detection tick.
+- **Subprocess hang / stack-up.** `find` on a network-mounted `~/.claude/projects` or a huge project count could have exceeded the 10 s poll interval, and concurrent ticks would stack rather than skip. `runProcessWithTimeout` now hard-caps every subprocess at 5 s (SIGTERM → 200 ms grace → SIGKILL), and a serial `activity` dispatch queue plus an in-flight flag guarantees at most one detection query is running at any time.
+
+### Added
+- **VoiceOver labels** on the menu-bar face state: `Claude Code active`, `Claude Code sleeping`, `syncing`, or the default title. The rich tooltip also gains a Claude-activity line so hover users know what the changing face means.
+- **5 regression tests** for the three-tier `classifyClaudeActivity(recentlyWorking:processAlive:)` classifier in `CoreLogic`. Precedence pinned (recent file > binary alive > nothing) so the v1.5.3 mistake (treating "process exists" as active) can't silently return. **Total: 40 tests.**
+
+### Internal
+- Dead `_ = zMid` cleanup in the sleeping-face `z`-mark drawing.
+- `queryClaudeRunning` refactored around `runProcessWithTimeout(launchPath:arguments:captureStdout:timeout:)`, tightening the two `Process` blocks into a single named path with a return type.
+
+---
+
 ## [1.5.4] — 2026-06-16
 
 ### Added

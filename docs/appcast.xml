@@ -7,6 +7,31 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.5.5</title>
+            <sparkle:shortVersionString>1.5.5</sparkle:shortVersionString>
+            <sparkle:version>14</sparkle:version>
+            <pubDate>Wed, 17 Jun 2026 15:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Stabilisation pass: smaller idle eyes + code-review fixes</h2>
+                <ul>
+                    <li>Idle eyes shrunk to small tidy dots — calm resting face</li>
+                    <li>Fixed a missing vertex in the menu-bar body path (silhouette now matches the popover icon)</li>
+                    <li>Merged claudeActivelyRunning + claudeSleeping into one @Published enum → no more brief idle flicker during ACTIVE↔SLEEPING transitions</li>
+                    <li>Every subprocess is now hard-capped at 5s (SIGTERM → SIGKILL); reentrancy guard prevents ticks from stacking on slow filesystems</li>
+                    <li>VoiceOver labels + tooltip line for the current Claude activity state</li>
+                    <li>5 new tests pinning the 3-tier classifier precedence (40 total)</li>
+                    <li>NOTE: This build is Developer-ID signed but Apple notarization is pending — the maintainer's account needs an updated agreement acceptance.</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.5.5-macos/ClaudeUsageWidget.dmg"
+                length="2299120"
+                type="application/octet-stream"
+                sparkle:edSignature="AcL857PTKD8RE8OtNPol1VRXOQ5kE7APxCK21Zc8NV3ucF4Em5nulqfy1/5LoKNtKYR0EDC1H58GqXyiC+4oAw==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.5.4</title>
             <sparkle:shortVersionString>1.5.4</sparkle:shortVersionString>
             <sparkle:version>13</sparkle:version>

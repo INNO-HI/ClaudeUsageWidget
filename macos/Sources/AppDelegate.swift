@@ -86,18 +86,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 .store(in: &cancellables)
 
-            // Re-paint when Claude Code activity changes — drives the .activeClaude face
-            viewModel.$claudeActivelyRunning
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in
-                    if let btn = self?.statusItem.button {
-                        self?.updateStatusBarIcon(button: btn)
-                    }
-                }
-                .store(in: &cancellables)
-
-            // Re-paint when Claude transitions in/out of "sleeping" — drives the .sleeping face
-            viewModel.$claudeSleeping
+            // Re-paint whenever the Claude activity state transitions between
+            // idle / sleeping / active. Single publisher means AppDelegate
+            // sees one change per detection tick, avoiding a stale
+            // intermediate face during the ACTIVE ↔ SLEEPING crossover.
+            viewModel.$claudeActivity
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     if let btn = self?.statusItem.button {
@@ -171,6 +164,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Rich tooltip — hover the menu bar icon for the full status
         button.toolTip = buildTooltip()
+        button.setAccessibilityLabel(accessibilityLabelForCurrentState(syncing: syncing))
 
         // Sync-state blink: alternate slit ↔ dots every 250 ms while syncing.
         if syncing {
@@ -225,7 +219,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             df.dateFormat = "HH:mm"
             lines.append("⟳ \(df.string(from: last))")
         }
+        // Surface the Claude Code activity state on hover so users know
+        // what the changing face means.
+        switch viewModel.claudeActivity {
+        case .active:   lines.append("● Claude Code — active")
+        case .sleeping: lines.append("· Claude Code — sleeping")
+        case .idle:     break  // no line when Claude isn't running
+        }
         return lines.joined(separator: "\n")
+    }
+
+    /// VoiceOver announcement for the current menu-bar face.
+    private func accessibilityLabelForCurrentState(syncing: Bool) -> String {
+        if syncing { return "Claude Usage Widget — syncing" }
+        switch viewModel.claudeActivity {
+        case .active:   return "Claude Usage Widget — Claude Code active"
+        case .sleeping: return "Claude Usage Widget — Claude Code sleeping"
+        case .idle:     return "Claude Usage Widget"
+        }
     }
 
     // MARK: - Bounce Animation

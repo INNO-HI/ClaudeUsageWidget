@@ -247,6 +247,41 @@ final class TokenExpiryTests: XCTestCase {
     }
 }
 
+final class ClaudeActivityTests: XCTestCase {
+    // v1.5.4 introduces a three-tier state driving the menu-bar face.
+    // Precedence must hold: recent file change > binary alive > nothing.
+    // These tests pin the classifier so a future refactor can't silently
+    // regress it (e.g. by treating "processAlive without recent file"
+    // as active again, which is exactly what v1.5.3 did wrong).
+
+    func test_bothSignalsOff_isIdle() {
+        XCTAssertEqual(classifyClaudeActivity(recentlyWorking: false, processAlive: false), .idle)
+    }
+
+    func test_onlyProcessAlive_isSleeping() {
+        XCTAssertEqual(classifyClaudeActivity(recentlyWorking: false, processAlive: true), .sleeping)
+    }
+
+    func test_recentlyWorking_isActive_evenWithoutBinaryAlive() {
+        // Corner case: `find` matched but pgrep didn't (Claude just exited
+        // mid-tick, or a file was touched by something else). Recent file
+        // activity is still the strongest signal.
+        XCTAssertEqual(classifyClaudeActivity(recentlyWorking: true, processAlive: false), .active)
+    }
+
+    func test_bothSignalsOn_isActive() {
+        XCTAssertEqual(classifyClaudeActivity(recentlyWorking: true, processAlive: true), .active)
+    }
+
+    func test_allCases_matchExpectedRawValues() {
+        // The raw strings appear in os_log output; downstream users grep
+        // for them, so they must stay stable.
+        XCTAssertEqual(ClaudeActivity.idle.rawValue, "idle")
+        XCTAssertEqual(ClaudeActivity.sleeping.rawValue, "sleeping")
+        XCTAssertEqual(ClaudeActivity.active.rawValue, "active")
+    }
+}
+
 final class UsageHistoryPointCodableTests: XCTestCase {
     func test_roundtrip() throws {
         let original = UsageHistoryPoint(

@@ -446,15 +446,23 @@ class UsageViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var errorKind: ErrorKind? = nil
     @Published var credentialStatus: CredentialStatus = .checking
-    /// True when Claude Code has written to a session file in the last 60 s
-    /// (or when it's running on a brand-new install with no projects yet).
-    /// AppDelegate uses this to switch the menu-bar face to "active eyes".
-    @Published var claudeActivelyRunning: Bool = false
-    /// True when Claude Code's CLI binary is running but no session file has
-    /// been written in the last 60 s. Surfaces as the "sleeping" face (closed
-    /// eyes + z). When `false` together with `claudeActivelyRunning=false`,
-    /// Claude isn't running at all and the default idle dots are shown.
-    @Published var claudeSleeping: Bool = false
+    /// Detected state of the local Claude Code CLI. Single @Published property
+    /// (rather than two Bools) so AppDelegate observes exactly one transition
+    /// per detection tick — no momentary inconsistency between "isActive" and
+    /// "isSleeping" that would otherwise force the icon through a stale
+    /// intermediate face on the way from ACTIVE → SLEEPING or vice-versa.
+    enum ClaudeActivity: String {
+        case idle       // claude binary not running
+        case sleeping   // running, but no session file changed in last 60 s
+        case active     // session file modified within last 60 s
+    }
+    @Published var claudeActivity: ClaudeActivity = .idle
+
+    /// Legacy accessors kept for view-model consumers that read individual
+    /// Bools. They forward to `claudeActivity` so all callers see a
+    /// consistent view.
+    var claudeActivelyRunning: Bool { claudeActivity == .active }
+    var claudeSleeping: Bool        { claudeActivity == .sleeping }
 
     enum ErrorKind {
         case credentials   // not logged in / token expired
@@ -921,20 +929,35 @@ class UsageViewModel: ObservableObject {
     /// pgrep every few seconds. "Claude is running" doesn't flip back and
     /// forth at sub-second scale, so going lower buys nothing.
     private static let claudeActivityPollSec: TimeInterval = 10
+    // Subprocess timeout is passed via runProcessWithTimeout(timeout:).
+    // Hard-capped at 5 s so a hung `find` on a network mount can't stack.
+    /// Reentrancy guard — if the previous tick's Process(es) still haven't
+    /// returned, skip this tick rather than piling on more subprocesses.
+    private let claudeActivityQueryQueue = DispatchQueue(
+        label: "com.innohi.claudeusagewidget.activity",
+        qos: .utility
+    )
+    private var claudeActivityQueryInFlight = false
 
     private func setupClaudeActivityWatch() {
         claudeActivityTimer?.invalidate()
-        // Initial check off the main thread — pgrep is ~5-15 ms.
-        DispatchQueue.global(qos: .utility).async { [weak self] in
-            self?.queryClaudeRunning()
-        }
+        scheduleClaudeActivityQuery()  // initial check
         let timer = Timer(timeInterval: Self.claudeActivityPollSec, repeats: true) { [weak self] _ in
-            DispatchQueue.global(qos: .utility).async {
-                self?.queryClaudeRunning()
-            }
+            self?.scheduleClaudeActivityQuery()
         }
         RunLoop.main.add(timer, forMode: .common)
         claudeActivityTimer = timer
+    }
+
+    /// Serialised entry point. Skips if the previous query is still running.
+    private func scheduleClaudeActivityQuery() {
+        claudeActivityQueryQueue.async { [weak self] in
+            guard let self = self else { return }
+            if self.claudeActivityQueryInFlight { return }
+            self.claudeActivityQueryInFlight = true
+            self.queryClaudeRunning()
+            self.claudeActivityQueryInFlight = false
+        }
     }
 
     /// Three-tier detection — the result drives the menu-bar face:
@@ -953,68 +976,97 @@ class UsageViewModel: ObservableObject {
         var recentlyWorking = false
         var processAlive = false
 
-        // 1) Are there any project files modified within the last minute?
+        // 1) Any project files modified within the last minute?
         if FileManager.default.fileExists(atPath: projectsDir) {
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/usr/bin/find")
-            task.arguments = [
-                projectsDir,
-                "-type", "f",
-                "-mmin", "-1",  // less than 1 minute since modification
-                "-print", "-quit"  // first match wins, exit early
-            ]
-            let pipe = Pipe()
-            task.standardOutput = pipe
-            task.standardError = Pipe()
-            do {
-                try task.run()
-                task.waitUntilExit()
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                recentlyWorking = !data.isEmpty
-            } catch {
-                recentlyWorking = false
-            }
+            recentlyWorking = runProcessWithTimeout(
+                launchPath: "/usr/bin/find",
+                arguments: [
+                    projectsDir,
+                    "-type", "f",
+                    "-mmin", "-1",       // less than 1 minute since modification
+                    "-print", "-quit"    // first match wins, exit early
+                ],
+                captureStdout: true
+            ).stdoutNonEmpty
         }
 
         // 2) Independent: is the `claude` binary itself running?
-        let pgrep = Process()
-        pgrep.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-        pgrep.arguments = ["-x", "claude"]
-        pgrep.standardOutput = Pipe()
-        pgrep.standardError = Pipe()
-        do {
-            try pgrep.run()
-            pgrep.waitUntilExit()
-            processAlive = (pgrep.terminationStatus == 0)
-        } catch {
-            processAlive = false
-        }
+        processAlive = runProcessWithTimeout(
+            launchPath: "/usr/bin/pgrep",
+            arguments: ["-x", "claude"],
+            captureStdout: false
+        ).exitCodeZero
 
-        // Project-file activity implies the binary is alive; cover the
-        // brand-new-install corner case where ~/.claude/projects doesn't
-        // exist yet but Claude IS running.
-        let active = recentlyWorking
-        let sleeping = !recentlyWorking && processAlive
+        let newActivity: ClaudeActivity
+        if recentlyWorking      { newActivity = .active }
+        else if processAlive    { newActivity = .sleeping }
+        else                    { newActivity = .idle }
 
-        let label: String
-        if active        { label = "ACTIVE" }
-        else if sleeping { label = "SLEEPING" }
-        else             { label = "idle" }
         os_log("claude → %{public}@ (recentFile=%{public}@ procAlive=%{public}@)",
                log: activityLog, type: .info,
-               label,
+               newActivity.rawValue,
                recentlyWorking ? "yes" : "no",
                processAlive ? "yes" : "no")
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            if active != self.claudeActivelyRunning {
-                self.claudeActivelyRunning = active
-            }
-            if sleeping != self.claudeSleeping {
-                self.claudeSleeping = sleeping
+            if newActivity != self.claudeActivity {
+                self.claudeActivity = newActivity
             }
         }
+    }
+
+    /// Runs a subprocess with a hard timeout. If the process exceeds the
+    /// timeout we SIGTERM (then SIGKILL) it so a hung `find` on a network
+    /// mount can't stack up across ticks.
+    private struct ProcessResult {
+        let exitCodeZero: Bool
+        let stdoutNonEmpty: Bool
+    }
+    private func runProcessWithTimeout(
+        launchPath: String,
+        arguments: [String],
+        captureStdout: Bool,
+        timeout: TimeInterval = 5.0
+    ) -> ProcessResult {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: launchPath)
+        task.arguments = arguments
+        let stdoutPipe = Pipe()
+        task.standardOutput = captureStdout ? stdoutPipe : Pipe()
+        task.standardError = Pipe()
+
+        do {
+            try task.run()
+        } catch {
+            return ProcessResult(exitCodeZero: false, stdoutNonEmpty: false)
+        }
+
+        // Poll for completion with a hard cap.
+        let deadline = Date().addingTimeInterval(timeout)
+        while task.isRunning && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        if task.isRunning {
+            task.terminate()
+            // Give it 200 ms to unwind, then SIGKILL.
+            let hardDeadline = Date().addingTimeInterval(0.2)
+            while task.isRunning && Date() < hardDeadline {
+                Thread.sleep(forTimeInterval: 0.05)
+            }
+            if task.isRunning {
+                kill(task.processIdentifier, SIGKILL)
+                task.waitUntilExit()
+            }
+            os_log("subprocess timeout: %{public}@", log: activityLog, type: .info, launchPath)
+            return ProcessResult(exitCodeZero: false, stdoutNonEmpty: false)
+        }
+
+        let stdoutNonEmpty = captureStdout
+            ? !stdoutPipe.fileHandleForReading.readDataToEndOfFile().isEmpty
+            : false
+        return ProcessResult(exitCodeZero: task.terminationStatus == 0,
+                             stdoutNonEmpty: stdoutNonEmpty)
     }
 
     // MARK: - Mood Decay (30분마다 기분 -1, 0이면 보너스 스탯 -1)

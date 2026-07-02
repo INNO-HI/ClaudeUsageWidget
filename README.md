@@ -220,7 +220,14 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.5.4 (latest)
+### v1.5.5 (latest)
+- Smaller **idle dots** (calm resting face) and matched menu-bar silhouette to popover icon
+- Merged Claude activity into a **single `@Published` enum** (no more idle flicker during ACTIVE↔SLEEPING)
+- **5-second subprocess timeout** + reentrancy guard so ticks can't stack on slow filesystems
+- VoiceOver + tooltip surface the current Claude activity state
+- 5 new regression tests (40 total)
+
+### v1.5.4
 - Added **sleeping face** (closed eyes + z) when Claude is running but no recent session activity
 - "Active" now means real work — `~/.claude/projects/` file modified in last 60s, not just process exists
 - Fixes the v1.5.3 UX where VS Code Claude Code kept the icon in active state forever

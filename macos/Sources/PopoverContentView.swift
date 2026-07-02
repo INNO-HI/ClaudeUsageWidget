@@ -772,7 +772,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.5.4")
+            Text("v1.5.5")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -1315,6 +1315,7 @@ func createMenuBarIcon(
         path.line(to: NSPoint(x: 15 * w, y: rect.height - 17.079 * h))
         path.line(to: NSPoint(x: 9 * w, y: rect.height - 17.079 * h))
         path.line(to: NSPoint(x: 9 * w, y: rect.height - 20 * h))
+        path.line(to: NSPoint(x: 7.488 * w, y: rect.height - 20 * h))       // restore hat prong
         path.line(to: NSPoint(x: 7.488 * w, y: rect.height - 17.079 * h))
         path.line(to: NSPoint(x: 6 * w, y: rect.height - 17.079 * h))
         path.line(to: NSPoint(x: 6 * w, y: rect.height - 20 * h))
@@ -1344,11 +1345,14 @@ func createMenuBarIcon(
 
         switch expression {
         case .idle:
-            // ●● — calm rectangular eyes
-            leftRect  = NSRect(x: baseLeftCenterX  - baseW/2, y: baseCenterY - baseH/2,
-                               width: baseW, height: baseH)
-            rightRect = NSRect(x: baseRightCenterX - baseW/2, y: baseCenterY - baseH/2,
-                               width: baseW, height: baseH)
+            // ▪▪ — small tidy dots (roughly half the base size for a
+            // minimalist, non-staring default look)
+            let dotW = baseW * 0.55
+            let dotH = baseH * 0.55
+            leftRect  = NSRect(x: baseLeftCenterX  - dotW/2, y: baseCenterY - dotH/2,
+                               width: dotW, height: dotH)
+            rightRect = NSRect(x: baseRightCenterX - dotW/2, y: baseCenterY - dotH/2,
+                               width: dotW, height: dotH)
 
         case .syncing:
             // −− — short horizontal slits (blinking; AppDelegate alternates with .idle)
@@ -1394,7 +1398,6 @@ func createMenuBarIcon(
             let zLeft   = 20.5 * w
             let zRight  = 23.0 * w
             let zTop    = rect.height - 4.0 * h
-            let zMid    = rect.height - 5.5 * h
             let zBottom = rect.height - 7.0 * h
             zPath.move(to: NSPoint(x: zLeft,  y: zTop))     // top horizontal
             zPath.line(to: NSPoint(x: zRight, y: zTop))
@@ -1402,7 +1405,6 @@ func createMenuBarIcon(
             zPath.line(to: NSPoint(x: zRight, y: zBottom))  // bottom horizontal
             eyeColor.setStroke()
             zPath.stroke()
-            _ = zMid  // future use
         }
 
         return true
