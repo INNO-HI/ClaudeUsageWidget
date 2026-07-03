@@ -220,7 +220,10 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.5.5 (latest)
+### v1.5.6 (latest)
+- Fixed **~20% constant CPU usage** — wobble/pulse/bounce moved from main-thread Timers to Core Animation (render server). Measured 20%+ → 0.0%
+
+### v1.5.5
 - Smaller **idle dots** (calm resting face) and matched menu-bar silhouette to popover icon
 - Merged Claude activity into a **single `@Published` enum** (no more idle flicker during ACTIVE↔SLEEPING)
 - **5-second subprocess timeout** + reentrancy guard so ticks can't stack on slow filesystems

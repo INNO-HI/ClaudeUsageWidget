@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.6] — 2026-07-03
+
+### Fixed
+- **~20 % constant CPU usage while Claude Code was running.** The wobble / pulse / bounce animations were Timer-driven (12–33 wakeups per second on the main thread), each tick mutating `frame.origin` or `alphaValue` and forcing a menu-bar re-composite. Since the wobble runs whenever Claude Code is active — which for most users is hours at a stretch — the widget held ~20 % of a core the whole time. All three motions are now repeating `CABasicAnimation`s on the status button's backing layer: the render server composites them and the widget process sleeps. Measured: **20 %+ → 0.0 %** with the wobble visibly running.
+- The sync-blink keeps its 4 Hz timer (it swaps `NSImage` content, which Core Animation can't animate) — that one was never the problem.
+
+### Internal
+- `bounceTimer/bouncePhase`, `pulseTimer/pulsePhase`, `wobbleTimer/wobblePhase` replaced by `bounceActive/pulseActive/wobbleActive` flags plus three named CA keys (`cuw.bounce`, `cuw.pulse`, `cuw.wobble`).
+- New `animatableLayer()` helper enables `wantsLayer` on the status button on demand.
+- Verified with a 3-frame screencapture that the CA wobble still renders (icon shifts relative to the % text between frames).
+
+### Known issue
+- Apple notarization is still blocked by the pending developer-agreement acceptance (HTTP 403 from the notary service). This build is Developer-ID signed only; Sparkle updates are unaffected.
+
+---
+
 ## [1.5.5] — 2026-06-17
 
 ### Changed

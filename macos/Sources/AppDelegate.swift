@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Combine
+import QuartzCore
 import Sparkle
 
 // MARK: - App Delegate
@@ -11,14 +12,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var eventMonitor: EventMonitor?
     private var viewModel = UsageViewModel()
     private var cancellables = Set<AnyCancellable>()
-    private var bounceTimer: Timer?
-    private var bouncePhase: CGFloat = 0
-    private var pulseTimer: Timer?
-    private var pulsePhase: CGFloat = 0
-    private var blinkTimer: Timer?
+    // Motion is Core Animation-driven (render server, ~0 CPU in-process).
+    // The old Timer-based approach mutated frame/alpha 12–33×/sec on the
+    // main thread and held the widget at ~20% CPU whenever Claude was active.
+    private var bounceActive = false
+    private var pulseActive = false
+    private var wobbleActive = false
+    private var blinkTimer: Timer?   // blink swaps NSImage content — CA can't animate that; 4 Hz is cheap
     private var blinkOpen: Bool = false  // true = dots (.idle), false = slits (.syncing)
-    private var wobbleTimer: Timer?
-    private var wobblePhase: CGFloat = 0
 
     // Sparkle auto-updater (starts checking on launch per Info.plist settings)
     let updaterController: SPUStandardUpdaterController
@@ -242,44 +243,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Bounce Animation
 
     private func startBounceAnimation() {
-        guard bounceTimer == nil else { return }
+        guard !bounceActive else { return }
         // Respect Reduce Motion system setting
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return }
-        bouncePhase = 0
-        bounceTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            guard let self = self, let button = self.statusItem.button else { return }
-            self.bouncePhase += 0.15
-            let offset = sin(self.bouncePhase) * 2.0  // 2px up/down
-            button.frame.origin.y = offset
-        }
+        guard let layer = animatableLayer() else { return }
+        bounceActive = true
+        let anim = CABasicAnimation(keyPath: "transform.translation.y")
+        anim.fromValue = -2.0
+        anim.toValue = 2.0
+        anim.duration = 0.45
+        anim.autoreverses = true
+        anim.repeatCount = .infinity
+        anim.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        layer.add(anim, forKey: Self.bounceAnimKey)
     }
 
     private func stopBounceAnimation() {
-        bounceTimer?.invalidate()
-        bounceTimer = nil
-        if let button = statusItem.button {
-            button.frame.origin.y = 0
-        }
+        bounceActive = false
+        statusItem.button?.layer?.removeAnimation(forKey: Self.bounceAnimKey)
     }
 
-    // MARK: - Warning Pulse (>=80%)
+    // MARK: - Warning Pulse (>= alert threshold)
 
     private func startPulseAnimation() {
-        guard pulseTimer == nil else { return }
+        guard !pulseActive else { return }
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return }
-        pulsePhase = 0
-        pulseTimer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { [weak self] _ in
-            guard let self = self, let button = self.statusItem.button else { return }
-            self.pulsePhase += 0.18
-            // Breathing alpha 0.55..1.0
-            let alpha = 0.55 + (sin(self.pulsePhase) + 1) / 2 * 0.45
-            button.alphaValue = alpha
-        }
+        guard let layer = animatableLayer() else { return }
+        pulseActive = true
+        let anim = CABasicAnimation(keyPath: "opacity")
+        anim.fromValue = 1.0
+        anim.toValue = 0.55
+        anim.duration = 0.7
+        anim.autoreverses = true
+        anim.repeatCount = .infinity
+        anim.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        layer.add(anim, forKey: Self.pulseAnimKey)
     }
 
     private func stopPulseAnimation() {
-        pulseTimer?.invalidate()
-        pulseTimer = nil
+        pulseActive = false
+        statusItem.button?.layer?.removeAnimation(forKey: Self.pulseAnimKey)
         statusItem.button?.alphaValue = 1.0
     }
 
@@ -311,25 +314,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Energetic horizontal vibration to signal "Claude Code is actively
     /// running on this machine". ±1.5 px at ~3 Hz — visible enough to draw
     /// the eye but not big enough to bump neighbouring menu-bar icons.
+    /// Runs entirely on the render server via Core Animation.
     private func startWobbleAnimation() {
-        guard wobbleTimer == nil else { return }
+        guard !wobbleActive else { return }
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return }
-        wobblePhase = 0
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.03, repeats: true) { [weak self] _ in
-            guard let self = self, let button = self.statusItem.button else { return }
-            self.wobblePhase += 0.6
-            let offset = sin(self.wobblePhase) * 1.5
-            button.frame.origin.x = offset
-        }
-        wobbleTimer = timer
+        guard let layer = animatableLayer() else { return }
+        wobbleActive = true
+        let anim = CABasicAnimation(keyPath: "transform.translation.x")
+        anim.fromValue = -1.5
+        anim.toValue = 1.5
+        anim.duration = 0.16   // full left↔right sweep ≈ 3 Hz round trip
+        anim.autoreverses = true
+        anim.repeatCount = .infinity
+        anim.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        layer.add(anim, forKey: Self.wobbleAnimKey)
     }
 
     private func stopWobbleAnimation() {
-        wobbleTimer?.invalidate()
-        wobbleTimer = nil
-        if let button = statusItem.button {
-            button.frame.origin.x = 0
-        }
+        wobbleActive = false
+        statusItem.button?.layer?.removeAnimation(forKey: Self.wobbleAnimKey)
+    }
+
+    // MARK: - Core Animation plumbing
+
+    private static let bounceAnimKey = "cuw.bounce"
+    private static let pulseAnimKey  = "cuw.pulse"
+    private static let wobbleAnimKey = "cuw.wobble"
+
+    /// The status-bar button's backing layer, created on demand. All motion
+    /// runs as repeating CABasicAnimations on this layer — the render server
+    /// composites them without waking our process, unlike the previous
+    /// Timer-based frame/alpha mutation (12–33 wakeups/sec on the main thread).
+    private func animatableLayer() -> CALayer? {
+        guard let button = statusItem.button else { return nil }
+        button.wantsLayer = true
+        return button.layer
     }
 
     @objc func togglePopover() {

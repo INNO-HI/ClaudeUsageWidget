@@ -7,6 +7,27 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.5.6</title>
+            <sparkle:shortVersionString>1.5.6</sparkle:shortVersionString>
+            <sparkle:version>15</sparkle:version>
+            <pubDate>Thu, 03 Jul 2026 18:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Fixes ~20% constant CPU usage</h2>
+                <ul>
+                    <li>Wobble / pulse / bounce were Timer-driven (12–33 main-thread wakeups per second) — the widget held ~20% of a core whenever Claude Code was active</li>
+                    <li>All three motions now run as repeating Core Animation on the render server: measured 20%+ → 0.0% with the wobble visibly running</li>
+                    <li>Sync-blink keeps its cheap 4 Hz timer (content swap can't be CA-animated)</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.5.6-macos/ClaudeUsageWidget.dmg"
+                length="2296782"
+                type="application/octet-stream"
+                sparkle:edSignature="6jfMj7fqdsoGJgt1QgBxqub0GHp3xwd6a5kCdZdLYR3dcjn06aHvYSxBJeyfKxb9HK2N4eDJxyGth0J1DOMHCw==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.5.5</title>
             <sparkle:shortVersionString>1.5.5</sparkle:shortVersionString>
             <sparkle:version>14</sparkle:version>
