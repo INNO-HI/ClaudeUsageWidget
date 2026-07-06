@@ -66,6 +66,12 @@ struct L {
     static var exportCSV: String { t("Export CSV", ko: "CSV로 내보내기", ja: "CSV エクスポート", zh: "导出 CSV") }
     static var exportJSON: String { t("Export JSON", ko: "JSON으로 내보내기", ja: "JSON エクスポート", zh: "导出 JSON") }
     static var clearHistory: String { t("Clear history", ko: "기록 삭제", ja: "履歴を削除", zh: "清除历史") }
+    static var copySummary: String { t("Copy summary", ko: "요약 복사", ja: "概要をコピー", zh: "复制摘要") }
+    static var copiedSummary: String { t("Copied!", ko: "복사됨!", ja: "コピーしました!", zh: "已复制!") }
+    static var menuBarMetric: String { t("Menu bar metric", ko: "메뉴바 지표", ja: "メニューバー指標", zh: "菜单栏指标") }
+    static var metricSession: String { t("Session", ko: "세션", ja: "セッション", zh: "会话") }
+    static var metricWeekly: String { t("Weekly", ko: "주간", ja: "週間", zh: "每周") }
+    static var syncManual: String { t("manual", ko: "수동", ja: "手動", zh: "手动") }
     static var clearHistoryConfirm: String { t("Delete all usage history?", ko: "모든 사용량 기록을 삭제하시겠습니까?", ja: "すべての使用履歴を削除しますか?", zh: "确定要删除所有用量历史?") }
     static var deleteAction: String { t("Delete", ko: "삭제", ja: "削除", zh: "删除") }
     static var cancelAction: String { t("Cancel", ko: "취소", ja: "キャンセル", zh: "取消") }
@@ -114,6 +120,9 @@ struct L {
     static var notifPageSkip: String { t("Maybe later", ko: "나중에", ja: "あとで", zh: "稍后") }
 
     static var alertTitle: String { t("Claude Usage Alert", ko: "Claude 사용량 알림", ja: "Claude 使用量アラート", zh: "Claude 用量提醒") }
+    static var newSessionTitle: String { t("New session started", ko: "새 세션 시작", ja: "新しいセッション開始", zh: "新会话已开始") }
+    static var newSessionBody: String { t("Your 5-hour usage window has reset.", ko: "5시간 사용량 창이 초기화되었습니다.", ja: "5 時間の使用枠がリセットされました。", zh: "您的 5 小时用量窗口已重置。") }
+    static var notifyNewSession: String { t("Notify when session resets", ko: "세션 초기화 시 알림", ja: "セッションリセット時に通知", zh: "会话重置时通知") }
     static func alertSession(percent: Int) -> String {
         switch lang {
         case .en:   return "You've used \(percent)% of your 5-hour session"
@@ -152,6 +161,8 @@ struct L {
     static var learnMore: String { t("Learn more about usage limits", ko: "사용량 제한 자세히 알아보기", ja: "使用量制限の詳細", zh: "了解用量限制") }
     static var allModels: String { t("All models", ko: "전체 모델", ja: "全モデル", zh: "全部模型") }
     static var sonnetOnly: String { t("Sonnet only", ko: "Sonnet 전용", ja: "Sonnet のみ", zh: "仅 Sonnet") }
+    static var opusOnly: String { t("Opus only", ko: "Opus 전용", ja: "Opus のみ", zh: "仅 Opus") }
+    static var extraUsageOn: String { t("Extra usage on", ko: "추가 사용 켜짐", ja: "追加使用オン", zh: "已启用额外用量") }
     static func resetsAt(_ date: String) -> String {
         switch lang {
         case .en:   return "Resets \(date)"
@@ -189,5 +200,20 @@ struct L {
     static var errorServerBody: String { t("Likely an Anthropic-side issue. Try again in a moment.", ko: "Anthropic 서버 측 문제일 수 있어요. 잠시 후 다시 시도해보세요.", ja: "Anthropic 側の問題の可能性があります。しばらくしてから再試行してください。", zh: "可能是 Anthropic 服务端问题,请稍后重试。") }
     static var errorUnknownTitle: String { t("Something went wrong", ko: "알 수 없는 오류", ja: "不明なエラー", zh: "出现错误") }
     static var retryNow: String { t("Retry now", ko: "다시 시도", ja: "再試行", zh: "立即重试") }
+    static var tooltipClaudeActive: String { t("● Claude Code — active", ko: "● Claude Code — 작업 중", ja: "● Claude Code — 動作中", zh: "● Claude Code — 运行中") }
+    static var tooltipClaudeSleeping: String { t("· Claude Code — sleeping", ko: "· Claude Code — 대기 중", ja: "· Claude Code — スリープ", zh: "· Claude Code — 休眠") }
+    // Buddy strings that were hardcoded in BuddyViews
+    static var hatchPrompt: String { t("Hatch your buddy!", ko: "버디를 부화시키세요!", ja: "バディを孵化させよう!", zh: "孵化你的伙伴!") }
+    static var hatching: String { t("Hatching...", ko: "부화 중...", ja: "孵化中...", zh: "孵化中...") }
+    static var petBuddy: String { t("Pet buddy", ko: "버디 쓰다듬기", ja: "バディをなでる", zh: "抚摸伙伴") }
+    static var feedBuddy: String { t("Feed buddy", ko: "버디 밥 주기", ja: "バディに餌をやる", zh: "喂养伙伴") }
+    static func buddyMood(_ mood: Int) -> String {
+        switch lang {
+        case .en:   return "Mood \(mood) of 5"
+        case .ko:   return "기분 \(mood)/5"
+        case .ja:   return "気分 \(mood)/5"
+        case .zhCN: return "心情 \(mood)/5"
+        }
+    }
     static var dismissError: String { t("Dismiss", ko: "닫기", ja: "閉じる", zh: "关闭") }
 }

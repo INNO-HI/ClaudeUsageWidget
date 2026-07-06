@@ -299,3 +299,48 @@ final class UsageHistoryPointCodableTests: XCTestCase {
         XCTAssertEqual(decoded, original)
     }
 }
+
+
+final class MenuBarTextTests: XCTestCase {
+    func test_hidden_returnsEmpty() {
+        XCTAssertEqual(formatMenuBarText(format: .hidden, isConnected: true, percentValue: 50, resetSeconds: 3600), "")
+    }
+    func test_disconnected_returnsDashes() {
+        XCTAssertEqual(formatMenuBarText(format: .percent, isConnected: false, percentValue: 50, resetSeconds: 3600), "--")
+    }
+    func test_percent() {
+        XCTAssertEqual(formatMenuBarText(format: .percent, isConnected: true, percentValue: 47.9, resetSeconds: 0), "47%")
+    }
+    func test_time_hoursAndMinutes() {
+        XCTAssertEqual(formatMenuBarText(format: .time, isConnected: true, percentValue: 0, resetSeconds: 2*3600 + 13*60), "2h 13m")
+    }
+    func test_time_wholeHours() {
+        XCTAssertEqual(formatMenuBarText(format: .time, isConnected: true, percentValue: 0, resetSeconds: 3*3600), "3h")
+    }
+    func test_time_minutesOnly() {
+        XCTAssertEqual(formatMenuBarText(format: .time, isConnected: true, percentValue: 0, resetSeconds: 14*60), "14m")
+    }
+    func test_both() {
+        XCTAssertEqual(formatMenuBarText(format: .both, isConnected: true, percentValue: 47, resetSeconds: 3600), "47% · 1h")
+    }
+}
+
+final class HistoryCSVTests: XCTestCase {
+    func test_headerRow_includesAllColumns() {
+        let csv = buildHistoryCSV(rows: [])
+        XCTAssertTrue(csv.hasPrefix("timestamp,session_percent,weekly_all_models_percent,weekly_sonnet_percent\n"))
+    }
+    func test_rowWithSonnet() {
+        let csv = buildHistoryCSV(rows: [("2026-07-03T10:00:00Z", 42.5, 18.0, 3.5)])
+        XCTAssertTrue(csv.contains("2026-07-03T10:00:00Z,42.5,18.0,3.5"))
+    }
+    func test_rowWithoutSonnet_hasEmptyLastColumn() {
+        // Pre-v1.6.0 history points have no sonnet value — column must be
+        // present but empty so the CSV stays rectangular.
+        let csv = buildHistoryCSV(rows: [("2026-07-03T10:00:00Z", 42.5, 18.0, nil)])
+        XCTAssertTrue(csv.contains("2026-07-03T10:00:00Z,42.5,18.0,\n"))
+    }
+    func test_trailingNewline() {
+        XCTAssertTrue(buildHistoryCSV(rows: []).hasSuffix("\n"))
+    }
+}

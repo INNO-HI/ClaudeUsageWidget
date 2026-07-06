@@ -14,7 +14,7 @@ struct BuddyEggView: View {
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(Theme.textSecondary.opacity(0.4))
                         .multilineTextAlignment(.center)
-                    Text("Hatch your buddy!")
+                    Text(L.hatchPrompt)
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundColor(Theme.textSecondary)
                 }
@@ -168,6 +168,8 @@ struct BuddyCardView: View {
                     .font(.system(size: 8, design: .monospaced))
                     .foregroundColor(Theme.textSecondary.opacity(0.2))
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(spec.name) — \(spec.species.displayName), \(spec.rarity.displayName)")
 
             if state == .happy {
                 Text("*")
@@ -328,6 +330,7 @@ struct BuddyCardView: View {
             Text(String(repeating: "<3 ", count: mood) + String(repeating: ".. ", count: 5 - mood))
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundColor(Theme.danger)
+                .accessibilityLabel(L.buddyMood(mood))
 
             Text(buddyTip)
                 .font(.system(size: 9, design: .monospaced))
@@ -350,6 +353,7 @@ struct BuddyCardView: View {
                             )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(L.petBuddy)
 
                     Button(action: onFeed) {
                         Text("/buddy feed")
@@ -366,6 +370,7 @@ struct BuddyCardView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(!canFeed)
+                    .accessibilityLabel(L.feedBuddy)
 
                     Button(action: onSleep) {
                         Text("/buddy off")
@@ -469,5 +474,8 @@ struct BuddyStatBar: View {
             }
             .frame(width: 30, alignment: .leading)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(name)
+        .accessibilityValue(bonus > 0 ? "\(value)+\(bonus)" : "\(value)")
     }
 }

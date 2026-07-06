@@ -7,6 +7,31 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.6.0</title>
+            <sparkle:shortVersionString>1.6.0</sparkle:shortVersionString>
+            <sparkle:version>16</sparkle:version>
+            <pubDate>Sun, 06 Jul 2026 17:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>36 improvements: Opus pool, session-reset alerts, copy summary, big perf pass</h2>
+                <ul>
+                    <li>Opus weekly pool row + extra-usage detection + menu-bar metric picker (session/weekly)</li>
+                    <li>Session-reset notification option; copy usage summary (⌘⇧C)</li>
+                    <li>"Keep on Top" now actually pins the popover</li>
+                    <li>Perf: ~15 launch config writes eliminated, file I/O off main thread, icon cache, event-driven subprocess waits, formatter caching, timer tolerances</li>
+                    <li>Full EN/KO/JA/ZH coverage for tooltips, VoiceOver, buddy; monospaced menu-bar digits</li>
+                    <li>Only the icon animates now — the % text stays perfectly still</li>
+                    <li>9 defects caught by pre-release adversarial review, incl. a settings-loss regression for upgrading users</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.6.0-macos/ClaudeUsageWidget.dmg"
+                length="2360850"
+                type="application/octet-stream"
+                sparkle:edSignature="v6fFtcQFCT42kMu1W8zOY7bNQFopS6hqZqQJEgzbBygm7yhtt2+j+kncJFo1JFQkKW+L7g6PEtY/dOKhbPjLAA==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.5.6</title>
             <sparkle:shortVersionString>1.5.6</sparkle:shortVersionString>
             <sparkle:version>15</sparkle:version>

@@ -204,3 +204,50 @@ public func formatResetsIn(hours: Int, minutes: Int, lang: SupportedLanguage) ->
         return "即将重置"
     }
 }
+
+
+// MARK: - Menu bar text formatting
+
+public enum MenuBarTextFormat: String, CaseIterable {
+    case hidden, percent, time, both
+}
+
+/// Pure twin of the widget's menu-bar text logic so it can be unit-tested.
+/// `percentValue` is whichever metric the user selected (session or weekly).
+public func formatMenuBarText(
+    format: MenuBarTextFormat,
+    isConnected: Bool,
+    percentValue: Double,
+    resetSeconds: Int
+) -> String {
+    if format == .hidden { return "" }
+    if !isConnected { return "--" }
+
+    let pct = Int(percentValue)
+    let hours = resetSeconds / 3600
+    let minutes = (resetSeconds % 3600) / 60
+    let timeStr: String = hours > 0
+        ? (minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h")
+        : "\(minutes)m"
+
+    switch format {
+    case .hidden:  return ""
+    case .percent: return "\(pct)%"
+    case .time:    return timeStr
+    case .both:    return "\(pct)% · \(timeStr)"
+    }
+}
+
+// MARK: - History CSV
+
+/// Pure CSV builder — mirrors the app's export so the format is pinned by tests.
+public func buildHistoryCSV(
+    rows: [(timestamp: String, session: Double, weeklyAll: Double, weeklySonnet: Double?)]
+) -> String {
+    var lines = ["timestamp,session_percent,weekly_all_models_percent,weekly_sonnet_percent"]
+    for r in rows {
+        let sonnet = r.weeklySonnet.map { String($0) } ?? ""
+        lines.append("\(r.timestamp),\(r.session),\(r.weeklyAll),\(sonnet)")
+    }
+    return lines.joined(separator: "\n") + "\n"
+}

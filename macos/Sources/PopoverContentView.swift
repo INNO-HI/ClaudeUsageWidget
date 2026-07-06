@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 
 struct PopoverContentView: View {
     @ObservedObject var viewModel: UsageViewModel
+    @State private var summaryCopied = false
 
     var body: some View {
         Group {
@@ -58,6 +59,7 @@ struct PopoverContentView: View {
             }
             .frame(width: 0, height: 0)
             .opacity(0)
+            .accessibilityHidden(true)  // shortcut carriers only — invisible to VoiceOver
         }
     }
 
@@ -170,6 +172,8 @@ struct PopoverContentView: View {
 
             menuBarFormatRow
 
+            menuBarMetricRow
+
             settingsToggleRow(label: L.showBuddy, isOn: $viewModel.showBuddy)
 
             settingsToggleRow(label: L.compactMode, isOn: $viewModel.compactMode)
@@ -183,6 +187,8 @@ struct PopoverContentView: View {
 
             if viewModel.notificationsEnabled {
                 thresholdRow
+
+                settingsToggleRow(label: L.notifyNewSession, isOn: $viewModel.notifyOnSessionReset)
             }
 
             // ── Data ─────────────────────────────────
@@ -415,6 +421,34 @@ struct PopoverContentView: View {
         }
     }
 
+    // MARK: Settings — Menu bar metric picker (session vs weekly %)
+
+    private var menuBarMetricRow: some View {
+        HStack(spacing: 6) {
+            Text(L.menuBarMetric)
+                .font(AppFont.regular(11))
+                .foregroundColor(Theme.textPrimary)
+            Spacer()
+            ForEach([UsageViewModel.MenuBarMetric.session, .weekly], id: \.rawValue) { metric in
+                Button(action: { viewModel.menuBarMetric = metric }) {
+                    Text(metric == .session ? L.metricSession : L.metricWeekly)
+                        .font(viewModel.menuBarMetric == metric ? AppFont.bold(10) : AppFont.regular(10))
+                        .foregroundColor(viewModel.menuBarMetric == metric ? Theme.claudeOrange : Theme.textSecondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(viewModel.menuBarMetric == metric ? Theme.claudeOrange.opacity(0.1) : Color.clear)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(viewModel.menuBarMetric == metric ? Theme.claudeOrange.opacity(0.3) : Theme.border, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(L.menuBarMetric): \(metric == .session ? L.metricSession : L.metricWeekly)")
+            }
+        }
+    }
+
     // MARK: Settings — Account rows
 
     private var languageRow: some View {
@@ -596,7 +630,8 @@ struct PopoverContentView: View {
                 )
                 .frame(width: viewModel.compactMode ? 72 : 92,
                        height: viewModel.compactMode ? 72 : 92)
-                .accessibilityLabel("\(L.currentSession): \(Int(viewModel.usage.sessionUsagePercent)) percent")
+                .accessibilityLabel(L.currentSession)
+                .accessibilityValue("\(Int(viewModel.usage.sessionUsagePercent))% — \(viewModel.sessionResetText)")
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(L.currentSession)
@@ -673,11 +708,7 @@ struct PopoverContentView: View {
                         .foregroundColor(percentColor(viewModel.usage.weeklyAllModelsPercent))
                 }
 
-                UsageProgressBar(
-                    percent: viewModel.usage.weeklyAllModelsPercent,
-                    showScale: false,
-                    showIcon: false
-                )
+                UsageProgressBar(percent: viewModel.usage.weeklyAllModelsPercent)
 
                 if !viewModel.usage.weeklyAllModelsResetDate.isEmpty {
                     Text(L.resetsAt(viewModel.usage.weeklyAllModelsResetDate))
@@ -698,11 +729,24 @@ struct PopoverContentView: View {
                         .foregroundColor(percentColor(viewModel.usage.weeklySonnetPercent))
                 }
 
-                UsageProgressBar(
-                    percent: viewModel.usage.weeklySonnetPercent,
-                    showScale: false,
-                    showIcon: false
-                )
+                UsageProgressBar(percent: viewModel.usage.weeklySonnetPercent)
+
+                // Opus pool — only plans that have one (seven_day_opus non-null)
+                if viewModel.usage.hasOpusLimit {
+                    Divider().background(Theme.border.opacity(0.3))
+
+                    HStack {
+                        Text(L.opusOnly)
+                            .font(AppFont.medium(12))
+                            .foregroundColor(Theme.textPrimary)
+                        Spacer()
+                        Text("\(Int(viewModel.usage.weeklyOpusPercent))%")
+                            .font(AppFont.bold(12))
+                            .foregroundColor(percentColor(viewModel.usage.weeklyOpusPercent))
+                    }
+
+                    UsageProgressBar(percent: viewModel.usage.weeklyOpusPercent)
+                }
 
                 Divider().background(Theme.border.opacity(0.3))
 
@@ -737,7 +781,7 @@ struct PopoverContentView: View {
 
                 ForEach(SyncInterval.allCases, id: \.self) { interval in
                     Button(action: { viewModel.syncInterval = interval }) {
-                        Text(interval.rawValue)
+                        Text(interval == .manual ? L.syncManual : interval.rawValue)
                             .font(viewModel.syncInterval == interval ? AppFont.bold(11) : AppFont.regular(11))
                             .foregroundColor(viewModel.syncInterval == interval ? Theme.claudeOrange : Theme.textSecondary)
                             .padding(.horizontal, 6)
@@ -772,7 +816,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.5.6")
+            Text("v1.6.0")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -781,6 +825,18 @@ struct PopoverContentView: View {
             Text(viewModel.lastSyncText)
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
+
+            Button(action: copySummaryToClipboard) {
+                Image(systemName: summaryCopied ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(summaryCopied ? Theme.success : Theme.textSecondary)
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L.copySummary + " (⌘⇧C)")
+            .accessibilityLabel(L.copySummary)
+            .keyboardShortcut("c", modifiers: [.command, .shift])
 
             Button(action: { viewModel.fetchUsage() }) {
                 HStack(spacing: 5) {
@@ -850,7 +906,7 @@ struct PopoverContentView: View {
                     BuddyEggView(state: viewModel.buddyState)
                         .frame(height: 80)
 
-                    Text("Hatching...")
+                    Text(L.hatching)
                         .font(AppFont.medium(11))
                         .foregroundColor(Theme.textSecondary)
 
@@ -868,6 +924,15 @@ struct PopoverContentView: View {
                     )
                 }
             }
+        }
+    }
+
+    private func copySummaryToClipboard() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(viewModel.usageSummaryText, forType: .string)
+        withAnimation { summaryCopied = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation { summaryCopied = false }
         }
     }
 
@@ -1016,8 +1081,11 @@ struct SparklineView: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            if samples.count < 2 {
+        // Bucketing walks the full history; compute once per render instead
+        // of once per Path closure (fill + line + dot = 3-4 passes before).
+        let s = samples
+        return GeometryReader { geo in
+            if s.count < 2 {
                 VStack {
                     Spacer()
                     Text(L.noTrendYet)
@@ -1030,7 +1098,7 @@ struct SparklineView: View {
                 ZStack {
                     // Fill under line
                     Path { path in
-                        let pts = points(for: geo.size)
+                        let pts = Self.projectPoints(s, size: geo.size)
                         guard let first = pts.first else { return }
                         path.move(to: CGPoint(x: first.x, y: geo.size.height))
                         path.addLine(to: first)
@@ -1050,7 +1118,7 @@ struct SparklineView: View {
 
                     // Line
                     Path { path in
-                        let pts = points(for: geo.size)
+                        let pts = Self.projectPoints(s, size: geo.size)
                         guard let first = pts.first else { return }
                         path.move(to: first)
                         for p in pts.dropFirst() { path.addLine(to: p) }
@@ -1058,7 +1126,7 @@ struct SparklineView: View {
                     .stroke(Theme.claudeOrange, style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
 
                     // Last-point dot
-                    if let last = points(for: geo.size).last {
+                    if let last = Self.projectPoints(s, size: geo.size).last {
                         Circle()
                             .fill(Theme.claudeOrange)
                             .frame(width: 5, height: 5)
@@ -1069,8 +1137,8 @@ struct SparklineView: View {
         }
     }
 
-    private func points(for size: CGSize) -> [CGPoint] {
-        let s = samples
+    /// Pure projection — samples are computed once in body and passed in.
+    private static func projectPoints(_ s: [Double], size: CGSize) -> [CGPoint] {
         guard s.count >= 2 else { return [] }
         let maxV: Double = max(20, s.max() ?? 1) // floor at 20% so tiny noise doesn't look spiky
         let stepX = size.width / Double(s.count - 1)
@@ -1106,77 +1174,32 @@ struct GlassCard<Content: View>: View {
     }
 }
 
-// MARK: - Visual Effect Blur (NSVisualEffectView wrapper)
-
-struct VisualEffectBlur: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
-
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        nsView.material = material
-        nsView.blendingMode = blendingMode
-    }
-}
 
 // MARK: - Usage Progress Bar
 
 struct UsageProgressBar: View {
     let percent: Double
-    let showScale: Bool
-    let showIcon: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(Theme.progressBg.opacity(0.5))
+                    .frame(height: 24)
+
+                if percent > 0 {
                     RoundedRectangle(cornerRadius: 7)
-                        .fill(Theme.progressBg.opacity(0.5))
-                        .frame(height: 24)
-
-                    if percent > 0 {
-                        HStack(spacing: 0) {
-                            RoundedRectangle(cornerRadius: 7)
-                                .fill(progressGradient)
-                                .frame(
-                                    width: max(10, geometry.size.width * CGFloat(min(percent, 100)) / 100),
-                                    height: 24
-                                )
-
-                            if showIcon && percent > 5 {
-                                ClaudeCodeIconView()
-                                    .frame(width: 18, height: 18)
-                                    .offset(x: -2)
-                            }
-                        }
-                    }
+                        .fill(progressGradient)
+                        .frame(
+                            width: max(10, geometry.size.width * CGFloat(min(percent, 100)) / 100),
+                            height: 24
+                        )
                 }
-            }
-            .frame(height: 24)
-
-            if showScale {
-                HStack {
-                    Text("0")
-                    Spacer()
-                    Text("25")
-                    Spacer()
-                    Text("50")
-                    Spacer()
-                    Text("75")
-                    Spacer()
-                    Text("100")
-                }
-                .font(AppFont.regular(9))
-                .foregroundColor(Theme.textSecondary)
             }
         }
+        .frame(height: 24)
+        .accessibilityElement(children: .ignore)
+        .accessibilityValue("\(Int(percent))%")
     }
 
     private var progressGradient: LinearGradient {
@@ -1284,11 +1307,20 @@ enum IconExpression {
     case idle, syncing, activeClaude, sleeping
 }
 
+/// Cache — the icon space is tiny (3 colour buckets × 4 expressions = 12
+/// distinct 18×18 images) but createMenuBarIcon was re-rasterizing a fresh
+/// NSBezierPath render on every repaint and 4×/sec during the sync blink.
+private var menuBarIconCache: [String: NSImage] = [:]
+
 func createMenuBarIcon(
     size: NSSize = NSSize(width: 18, height: 18),
     percent: Double = 0,
     expression: IconExpression = .idle
 ) -> NSImage {
+    let colorBucket = percent >= 80 ? 2 : (percent >= 50 ? 1 : 0)
+    let cacheKey = "\(expression)-\(colorBucket)-\(Int(size.width))"
+    if let cached = menuBarIconCache[cacheKey] { return cached }
+
     let fillColor = menuBarIconColor(for: percent)
     // Eyes painted in white — high contrast on the warm orange/red/amber
     // body so they read clearly on both light and dark menu bars.
@@ -1411,6 +1443,7 @@ func createMenuBarIcon(
     }
 
     image.isTemplate = false
+    menuBarIconCache[cacheKey] = image
     return image
 }
 

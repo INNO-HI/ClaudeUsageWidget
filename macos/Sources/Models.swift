@@ -8,6 +8,32 @@ import os.log
 ///   log stream --predicate 'subsystem == "com.innohi.claudeusagewidget" AND category == "activity"' --style compact
 private let activityLog = OSLog(subsystem: "com.innohi.claudeusagewidget", category: "activity")
 
+/// Unified-logging channel for the sync scheduler (was NSLog).
+private let syncLog = OSLog(subsystem: "com.innohi.claudeusagewidget", category: "sync")
+
+// MARK: - Cached formatters
+//
+// DateFormatter / ISO8601DateFormatter construction is expensive (~ms each).
+// These were being rebuilt on every call site — every sync tick, every mood
+// decay, every footer re-render. Cache once; all uses are main-thread or
+// read-only after init.
+enum CachedFormatters {
+    /// "h:mm a" — footer last-sync stamp.
+    static let hourMinute: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        return f
+    }()
+    /// "yyyy-MM-dd" — buddy feed day tracking.
+    static let dayKey: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+    /// ISO8601 with fractional seconds — history persistence.
+    static let iso8601: ISO8601DateFormatter = ISO8601DateFormatter()
+}
+
 // MARK: - Data Models
 
 struct UsageData {
@@ -16,6 +42,11 @@ struct UsageData {
     var weeklyAllModelsPercent: Double = 0
     var weeklyAllModelsResetDate: String = ""
     var weeklySonnetPercent: Double = 0
+    /// seven_day_opus utilization — only present on plans with an Opus pool.
+    var weeklyOpusPercent: Double = 0
+    var hasOpusLimit: Bool = false
+    /// extra_usage.is_enabled — pay-per-use overflow is switched on.
+    var extraUsageEnabled: Bool = false
     var lastSyncTime: Date? = nil
     var isConnected: Bool = false
     var planName: String = "Max"
@@ -54,6 +85,8 @@ struct UsageHistoryPoint: Codable {
     let timestamp: Date
     let sessionPercent: Double
     let weeklyAllModelsPercent: Double
+    /// Added in v1.6.0 — optional so pre-existing history files still decode.
+    var weeklySonnetPercent: Double?
 }
 
 // MARK: - Sync Interval
@@ -186,10 +219,12 @@ struct BuddyStats {
     var total: Int { debugging + patience + chaos + wisdom + snark }
 
     static var statNames: [String] {
-        if L.lang == .ko {
-            return ["디버깅", "인내심", "혼돈", "지혜", "독설"]
+        switch L.lang {
+        case .ko:   return ["디버깅", "인내심", "혼돈", "지혜", "독설"]
+        case .ja:   return ["デバッグ", "忍耐", "カオス", "知恵", "毒舌"]
+        case .zhCN: return ["调试", "耐心", "混沌", "智慧", "毒舌"]
+        case .en:   return ["DEBUGGING", "PATIENCE", "CHAOS", "WISDOM", "SNARK"]
         }
-        return ["DEBUGGING", "PATIENCE", "CHAOS", "WISDOM", "SNARK"]
     }
 
     var asArray: [Int] { [debugging, patience, chaos, wisdom, snark] }
@@ -407,14 +442,23 @@ class UsageViewModel: ObservableObject {
             saveConfig()
         }
     }
+    /// Which percentage the menu-bar text shows: 5-hour session or 7-day weekly.
+    enum MenuBarMetric: String { case session, weekly }
+    @Published var menuBarMetric: MenuBarMetric = .session {
+        didSet { saveConfig() }
+    }
     @Published var usageHistory: [UsageHistoryPoint] = []
     @Published var notificationsEnabled: Bool = false {
         didSet {
-            if notificationsEnabled { requestNotificationAuthorization() }
+            if notificationsEnabled && !isLoadingConfig { requestNotificationAuthorization() }
             saveConfig()
         }
     }
     @Published var alertThresholdLow: Int = 80 {
+        didSet { saveConfig() }
+    }
+    /// Fire a notification when the 5-hour window resets (usage back to 0).
+    @Published var notifyOnSessionReset: Bool = false {
         didSet { saveConfig() }
     }
     @Published var alertThresholdHigh: Int = 90 {
@@ -491,6 +535,10 @@ class UsageViewModel: ObservableObject {
     }
 
     private let service = ClaudeUsageService()
+    /// True while loadConfig() replays persisted values into @Published
+    /// properties. Guards against ~15 redundant saveConfig() disk writes and
+    /// an unintended SMAppService register/unregister cascade at every launch.
+    private var isLoadingConfig = false
     private var syncTimer: Timer?
     private var moodTimer: Timer?
     private var claudeActivityTimer: Timer?
@@ -500,6 +548,20 @@ class UsageViewModel: ObservableObject {
     private var notifiedLow: Bool = false
     private var notifiedHigh: Bool = false
     private var lastSessionResetSeconds: Int = 0
+
+    deinit {
+        syncTimer?.invalidate()
+        moodTimer?.invalidate()
+        claudeActivityTimer?.invalidate()
+    }
+
+    /// Block (briefly) until queued config/history writes hit disk. Called
+    /// from applicationWillTerminate — GCD drops pending blocks at exit, so
+    /// a setting toggled right before Quit would otherwise be lost.
+    func flushPendingWrites() {
+        configIOQueue.sync {}
+        historyIOQueue.sync {}
+    }
 
     init() {
         loadConfig()
@@ -550,9 +612,13 @@ class UsageViewModel: ObservableObject {
                 if self.buddyState == .working { self.buddyState = .idle }
                 switch result {
                 case .success(let data):
-                    self.usage = data
-                    self.usage.lastSyncTime = Date()
-                    self.usage.isConnected = true
+                    // Single @Published assignment → one repaint per sync
+                    // instead of three (each emission re-rasterizes the
+                    // menu-bar icon and rebuilds the tooltip).
+                    var d = data
+                    d.lastSyncTime = Date()
+                    d.isConnected = true
+                    self.usage = d
                     self.credentialStatus = .found
                     self.errorMessage = nil
                     self.errorKind = nil
@@ -594,16 +660,17 @@ class UsageViewModel: ObservableObject {
         consecutiveFailures = 0
 
         guard syncInterval.seconds != nil else {
-            NSLog("[ClaudeUsageWidget] Auto-sync: manual mode, no timer")
+            os_log("auto-sync: manual mode, no timer", log: syncLog, type: .info)
             return
         }
 
         // Initial fetch with 0–2s random delay to avoid thundering herd
         let startDelay = Double.random(in: 0...2)
-        NSLog("[ClaudeUsageWidget] Auto-sync starting in %.2fs (jittered start)", startDelay)
+        os_log("auto-sync starting in %{public}.2fs (jittered start)", log: syncLog, type: .info, startDelay)
         let initial = Timer(timeInterval: startDelay, repeats: false) { [weak self] _ in
             self?.fetchUsage()
         }
+        initial.tolerance = max(0.5, startDelay * 0.1)  // let the OS coalesce wakeups
         RunLoop.main.add(initial, forMode: .common)
         syncTimer = initial
     }
@@ -622,10 +689,11 @@ class UsageViewModel: ObservableObject {
         let jitter = base * Double.random(in: -0.1...0.1)
         let delay = max(5.0, base * multiplier + jitter)
 
-        NSLog("[ClaudeUsageWidget] Next fetch in %.0fs (failures=%d, multiplier=%.1fx)", delay, consecutiveFailures, multiplier)
+        os_log("next fetch in %{public}.0fs (failures=%{public}d, multiplier=%{public}.1fx)", log: syncLog, type: .info, delay, consecutiveFailures, multiplier)
         let timer = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
             self?.fetchUsage()
         }
+        timer.tolerance = max(1.0, delay * 0.1)  // battery: allow wakeup coalescing
         RunLoop.main.add(timer, forMode: .common)
         syncTimer = timer
     }
@@ -635,9 +703,9 @@ class UsageViewModel: ObservableObject {
     private func requestNotificationAuthorization() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error = error {
-                NSLog("[ClaudeUsageWidget] Notification auth error: \(error)")
+                os_log("notification auth error: %{public}@", log: syncLog, type: .error, String(describing: error))
             }
-            NSLog("[ClaudeUsageWidget] Notification permission granted: \(granted)")
+            os_log("notification permission granted: %{public}@", log: syncLog, type: .info, granted ? "yes" : "no")
         }
     }
 
@@ -649,6 +717,11 @@ class UsageViewModel: ObservableObject {
         if usage.sessionResetSeconds > lastSessionResetSeconds + 60 {
             notifiedLow = false
             notifiedHigh = false
+            // A jump UP in resetSeconds means a fresh 5-hour window started.
+            // lastSessionResetSeconds == 0 is app launch, not a real reset.
+            if notifyOnSessionReset, notificationsEnabled, lastSessionResetSeconds > 0 {
+                sendSessionResetNotification()
+            }
         }
         lastSessionResetSeconds = usage.sessionResetSeconds
 
@@ -665,6 +738,32 @@ class UsageViewModel: ObservableObject {
         }
     }
 
+    private func sendSessionResetNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = L.newSessionTitle
+        content.body = L.newSessionBody
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: "session-reset", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                os_log("session-reset notification error: %{public}@", log: syncLog, type: .error, String(describing: error))
+            }
+        }
+    }
+
+    /// Plain-text summary for the clipboard (Copy summary button / ⌘⇧C).
+    var usageSummaryText: String {
+        var lines = ["Claude Code usage — \(CachedFormatters.hourMinute.string(from: Date()))"]
+        lines.append("Session: \(Int(usage.sessionUsagePercent))% (\(sessionResetText))")
+        lines.append("Weekly (all models): \(Int(usage.weeklyAllModelsPercent))%")
+        if usage.hasOpusLimit {
+            lines.append("Weekly (Opus): \(Int(usage.weeklyOpusPercent))%")
+        }
+        lines.append("Weekly (Sonnet): \(Int(usage.weeklySonnetPercent))%")
+        if usage.extraUsageEnabled { lines.append("Extra usage: enabled") }
+        return lines.joined(separator: "\n")
+    }
+
     private func sendUsageNotification(percent: Int, identifier: String) {
         let content = UNMutableNotificationContent()
         content.title = L.alertTitle
@@ -674,7 +773,7 @@ class UsageViewModel: ObservableObject {
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                NSLog("[ClaudeUsageWidget] Notification add error: \(error)")
+                os_log("notification add error: %{public}@", log: syncLog, type: .error, String(describing: error))
             }
         }
     }
@@ -682,6 +781,7 @@ class UsageViewModel: ObservableObject {
     // MARK: - Launch at Login (macOS 13+)
 
     private func applyLaunchAtLogin() {
+        if isLoadingConfig { return }  // reconciliation happens via refreshLaunchAtLoginStatus()
         if #available(macOS 13.0, *) {
             do {
                 let svc = SMAppService.mainApp
@@ -690,9 +790,9 @@ class UsageViewModel: ObservableObject {
                 } else {
                     if svc.status == .enabled { try svc.unregister() }
                 }
-                NSLog("[ClaudeUsageWidget] Launch at Login: \(launchAtLogin) (status=\(svc.status.rawValue))")
+                os_log("launch-at-login: %{public}@ (status=%{public}d)", log: syncLog, type: .info, launchAtLogin ? "on" : "off", svc.status.rawValue)
             } catch {
-                NSLog("[ClaudeUsageWidget] Launch at Login error: \(error)")
+                os_log("launch-at-login error: %{public}@", log: syncLog, type: .error, String(describing: error))
                 errorMessage = "Login Item: \(error.localizedDescription)"
             }
         }
@@ -724,16 +824,16 @@ class UsageViewModel: ObservableObject {
 
     var lastSyncText: String {
         guard let date = usage.lastSyncTime else { return L.never }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        return L.lastSync(formatter.string(from: date).lowercased())
+        return L.lastSync(CachedFormatters.hourMinute.string(from: date).lowercased())
     }
 
     var menuBarText: String {
         if menuBarFormat == .hidden { return "" }
         if !usage.isConnected { return "--" }
 
-        let pct = Int(usage.sessionUsagePercent)
+        let pct = menuBarMetric == .weekly
+            ? Int(usage.weeklyAllModelsPercent)
+            : Int(usage.sessionUsagePercent)
         let hours = usage.sessionResetSeconds / 3600
         let minutes = (usage.sessionResetSeconds % 3600) / 60
         let timeStr: String = {
@@ -800,7 +900,8 @@ class UsageViewModel: ObservableObject {
         let point = UsageHistoryPoint(
             timestamp: Date(),
             sessionPercent: usage.sessionUsagePercent,
-            weeklyAllModelsPercent: usage.weeklyAllModelsPercent
+            weeklyAllModelsPercent: usage.weeklyAllModelsPercent,
+            weeklySonnetPercent: usage.weeklySonnetPercent
         )
         usageHistory.append(point)
         let cutoff = Date().addingTimeInterval(-7 * 86400)
@@ -812,20 +913,30 @@ class UsageViewModel: ObservableObject {
         NSHomeDirectory() + "/.claude-usage-widget-history.json"
     }
 
+    private let historyIOQueue = DispatchQueue(
+        label: "com.innohi.claudeusagewidget.history-io",
+        qos: .utility
+    )
+
     private func saveHistory() {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        if let data = try? encoder.encode(usageHistory) {
-            try? data.write(to: URL(fileURLWithPath: historyPath))
+        let snapshot = usageHistory  // value-type copy on the main thread
+        let path = historyPath
+        historyIOQueue.async {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            if let data = try? encoder.encode(snapshot) {
+                try? data.write(to: URL(fileURLWithPath: path), options: .atomic)
+            }
         }
     }
 
     /// Convert usageHistory to CSV string (timestamp, session_pct, weekly_all_pct).
     func exportHistoryCSV() -> String {
-        var lines = ["timestamp,session_percent,weekly_all_models_percent"]
-        let iso = ISO8601DateFormatter()
+        var lines = ["timestamp,session_percent,weekly_all_models_percent,weekly_sonnet_percent"]
+        let iso = CachedFormatters.iso8601
         for p in usageHistory {
-            lines.append("\(iso.string(from: p.timestamp)),\(p.sessionPercent),\(p.weeklyAllModelsPercent)")
+            let sonnet = p.weeklySonnetPercent.map { String($0) } ?? ""
+            lines.append("\(iso.string(from: p.timestamp)),\(p.sessionPercent),\(p.weeklyAllModelsPercent),\(sonnet)")
         }
         return lines.joined(separator: "\n") + "\n"
     }
@@ -842,10 +953,15 @@ class UsageViewModel: ObservableObject {
         return "[]"
     }
 
-    /// Wipe persisted history and reset in-memory state.
+    /// Wipe persisted history and reset in-memory state. The file removal is
+    /// routed through historyIOQueue so an in-flight async save can't land
+    /// after the delete and resurrect the file.
     func clearHistory() {
         usageHistory.removeAll()
-        try? FileManager.default.removeItem(atPath: historyPath)
+        let path = historyPath
+        historyIOQueue.async {
+            try? FileManager.default.removeItem(atPath: path)
+        }
     }
 
     private func loadHistory() {
@@ -908,9 +1024,7 @@ class UsageViewModel: ObservableObject {
         buddyMood = min(5, buddyMood + 1)
 
         // 오늘 날짜 기록 → 하루 1회 제한
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        lastFeedDate = formatter.string(from: Date())
+        lastFeedDate = CachedFormatters.dayKey.string(from: Date())
         canFeed = false
 
         buddyState = .happy
@@ -945,12 +1059,20 @@ class UsageViewModel: ObservableObject {
         let timer = Timer(timeInterval: Self.claudeActivityPollSec, repeats: true) { [weak self] _ in
             self?.scheduleClaudeActivityQuery()
         }
+        timer.tolerance = 2.0  // 10s cadence; ±2s is invisible to the face swap
         RunLoop.main.add(timer, forMode: .common)
         claudeActivityTimer = timer
     }
 
-    /// Serialised entry point. Skips if the previous query is still running.
+    /// Serialised entry point. Skips if the previous query is still running,
+    /// or if the animated face is disabled — in which case the state is reset
+    /// to .idle so the tooltip / VoiceOver label don't report a stale
+    /// "Claude active" forever.
     private func scheduleClaudeActivityQuery() {
+        guard showMenuBarExpressions else {
+            if claudeActivity != .idle { claudeActivity = .idle }
+            return
+        }
         claudeActivityQueryQueue.async { [weak self] in
             guard let self = self else { return }
             if self.claudeActivityQueryInFlight { return }
@@ -1036,25 +1158,19 @@ class UsageViewModel: ObservableObject {
         task.standardOutput = captureStdout ? stdoutPipe : Pipe()
         task.standardError = Pipe()
 
+        // Event-driven completion — zero wakeups while the subprocess runs
+        // (the previous implementation polled isRunning at 20 Hz).
+        let done = DispatchSemaphore(value: 0)
+        task.terminationHandler = { _ in done.signal() }
         do {
             try task.run()
         } catch {
             return ProcessResult(exitCodeZero: false, stdoutNonEmpty: false)
         }
 
-        // Poll for completion with a hard cap.
-        let deadline = Date().addingTimeInterval(timeout)
-        while task.isRunning && Date() < deadline {
-            Thread.sleep(forTimeInterval: 0.05)
-        }
-        if task.isRunning {
+        if done.wait(timeout: .now() + timeout) == .timedOut {
             task.terminate()
-            // Give it 200 ms to unwind, then SIGKILL.
-            let hardDeadline = Date().addingTimeInterval(0.2)
-            while task.isRunning && Date() < hardDeadline {
-                Thread.sleep(forTimeInterval: 0.05)
-            }
-            if task.isRunning {
+            if done.wait(timeout: .now() + 0.2) == .timedOut {
                 kill(task.processIdentifier, SIGKILL)
                 task.waitUntilExit()
             }
@@ -1092,22 +1208,19 @@ class UsageViewModel: ObservableObject {
             }
 
             // 하루 지났으면 밥 줄 수 있게 리셋
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            let today = formatter.string(from: Date())
+            let today = CachedFormatters.dayKey.string(from: Date())
             if self.lastFeedDate != today {
                 self.canFeed = true
             }
 
             self.saveConfig()
         }
+        timer.tolerance = 120  // 30-min cadence; ±2 min is fine for mood decay
         RunLoop.main.add(timer, forMode: .common)
         moodTimer = timer
 
         // 시작 시 오늘 날짜 체크
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let today = formatter.string(from: Date())
+        let today = CachedFormatters.dayKey.string(from: Date())
         if lastFeedDate != today {
             canFeed = true
         }
@@ -1119,6 +1232,14 @@ class UsageViewModel: ObservableObject {
     private let legacyConfigPath = NSHomeDirectory() + "/.claude-monitor-config.json"
 
     private func loadConfig() {
+        isLoadingConfig = true
+        var migratedFromLegacy = false
+        defer {
+            isLoadingConfig = false
+            // The isLoadingConfig guard suppresses every save during load, so a
+            // legacy-path migration must be persisted explicitly once.
+            if migratedFromLegacy { saveConfig() }
+        }
         // Migration: prefer the new path, fall back to the legacy one (pre-1.1.0 Bundle ID rename).
         let primary = URL(fileURLWithPath: configPath)
         let legacy = URL(fileURLWithPath: legacyConfigPath)
@@ -1128,7 +1249,8 @@ class UsageViewModel: ObservableObject {
             sourceURL = primary
         } else if FileManager.default.fileExists(atPath: legacyConfigPath) {
             sourceURL = legacy
-            NSLog("[ClaudeUsageWidget] Migrating config from legacy path")
+            os_log("migrating config from legacy path", log: syncLog, type: .info)
+            migratedFromLegacy = true
         } else {
             return
         }
@@ -1152,8 +1274,15 @@ class UsageViewModel: ObservableObject {
            let format = MenuBarFormat(rawValue: fmt) {
             menuBarFormat = format
         } else {
-            // Legacy fallback: derive from showMenuBarText
+            // Legacy fallback (pre-v1.2 configs): derive from showMenuBarText
             menuBarFormat = showMenuBarText ? .percent : .hidden
+        }
+        if let metric = config["menuBarMetric"] as? String,
+           let m = MenuBarMetric(rawValue: metric) {
+            menuBarMetric = m
+        }
+        if let resetNotify = config["notifyOnSessionReset"] as? Bool {
+            notifyOnSessionReset = resetNotify
         }
         if let launch = config["launchAtLogin"] as? Bool {
             // Set without triggering register() during load — let refreshLaunchAtLoginStatus reconcile.
@@ -1220,12 +1349,20 @@ class UsageViewModel: ObservableObject {
         }
     }
 
+    private let configIOQueue = DispatchQueue(
+        label: "com.innohi.claudeusagewidget.config-io",
+        qos: .utility
+    )
+
     func saveConfig() {
+        if isLoadingConfig { return }  // loading replays didSet; skip the echo
         let config: [String: Any] = [
             "syncInterval": syncInterval.rawValue,
             "keepOnTop": keepOnTop,
             "showMenuBarText": showMenuBarText,
             "menuBarFormat": menuBarFormat.rawValue,
+            "menuBarMetric": menuBarMetric.rawValue,
+            "notifyOnSessionReset": notifyOnSessionReset,
             "launchAtLogin": launchAtLogin,
             "notificationsEnabled": notificationsEnabled,
             "alertThresholdLow": alertThresholdLow,
@@ -1242,8 +1379,15 @@ class UsageViewModel: ObservableObject {
             "lastFeedDate": lastFeedDate
         ]
 
-        if let data = try? JSONSerialization.data(withJSONObject: config, options: .prettyPrinted) {
-            try? data.write(to: URL(fileURLWithPath: configPath))
+        let path = configPath
+        configIOQueue.async {
+            if let data = try? JSONSerialization.data(withJSONObject: config, options: .prettyPrinted) {
+                do {
+                    try data.write(to: URL(fileURLWithPath: path), options: .atomic)
+                } catch {
+                    os_log("config write failed: %{public}@", log: syncLog, type: .error, String(describing: error))
+                }
+            }
         }
     }
 }

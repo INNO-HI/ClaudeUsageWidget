@@ -8,7 +8,7 @@ import Sparkle
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
-    private var popover: NSPopover!
+    private var popover: NSPopover!  // set in applicationDidFinishLaunching; sinks use popover? for the pre-init window
     private var eventMonitor: EventMonitor?
     private var viewModel = UsageViewModel()
     private var cancellables = Set<AnyCancellable>()
@@ -18,6 +18,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var bounceActive = false
     private var pulseActive = false
     private var wobbleActive = false
+    /// Dedicated layer that hosts ONLY the icon image. All motion (wobble /
+    /// bounce / pulse / blink) targets this layer, so the % text — which
+    /// lives in the button's own title — never moves.
+    private var iconLayer: CALayer?
+    /// Transparent 18×18 placeholder assigned to button.image purely to
+    /// reserve the icon's layout slot; the visible icon is iconLayer.contents.
+    private static let iconSpacer: NSImage = {
+        NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in true }
+    }()
     private var blinkTimer: Timer?   // blink swaps NSImage content — CA can't animate that; 4 Hz is cheap
     private var blinkOpen: Bool = false  // true = dots (.idle), false = slits (.syncing)
 
@@ -67,6 +76,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 .store(in: &cancellables)
 
+            // Repaint when the metric (session vs weekly %) changes —
+            // without this the picker looks broken in manual-sync mode.
+            viewModel.$menuBarMetric
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    if let btn = self?.statusItem.button {
+                        self?.updateStatusBarIcon(button: btn)
+                    }
+                }
+                .store(in: &cancellables)
+
             // Repaint the menu bar when the user changes the display format
             viewModel.$menuBarFormat
                 .receive(on: DispatchQueue.main)
@@ -111,6 +131,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 .store(in: &cancellables)
         }
 
+        // Live-apply "Keep on Top": update the open popover's behavior
+        // immediately instead of only on the next open.
+        viewModel.$keepOnTop
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] pinned in
+                guard let self = self else { return }
+                self.popover?.behavior = pinned ? .applicationDefined : .transient
+            }
+            .store(in: &cancellables)
+
         // Reconcile Launch-at-Login flag with actual system state
         // (user may have toggled it from System Settings → General → Login Items)
         viewModel.refreshLaunchAtLoginStatus()
@@ -129,11 +159,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hostingController.view.layer?.backgroundColor = .clear
         popover.contentViewController = hostingController
 
-        // Event monitor to close popover when clicking outside
+        // Event monitor to close popover when clicking outside.
+        // With "Keep on Top" enabled the popover is pinned: outside clicks
+        // no longer dismiss it (this is what the previously-dead setting
+        // was always meant to do).
         eventMonitor = EventMonitor(mask: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
-            if let self = self, self.popover.isShown {
-                self.popover.performClose(event)
-            }
+            guard let self = self, self.popover.isShown else { return }
+            if self.viewModel.keepOnTop { return }
+            self.popover.performClose(event)
+            self.eventMonitor?.stop()  // symmetric with togglePopover's close path
         }
     }
 
@@ -155,17 +189,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             expression = .idle
         }
-        button.image = createMenuBarIcon(size: NSSize(width: 18, height: 18),
-                                          percent: pct,
-                                          expression: expression)
+        let iconImage = createMenuBarIcon(size: NSSize(width: 18, height: 18),
+                                           percent: pct,
+                                           expression: expression)
+        button.image = Self.iconSpacer  // reserves layout space only
+        positionIconLayer(on: button, image: iconImage)
 
         let text = viewModel.menuBarText
-        button.title = text.isEmpty ? "" : " \(text)"
+        if text.isEmpty {
+            button.attributedTitle = NSAttributedString(string: "")
+        } else {
+            // Monospaced digits stop the title (and every icon to its left)
+            // from shifting horizontally as the numbers tick over.
+            button.attributedTitle = NSAttributedString(
+                string: " \(text)",
+                attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize(for: .small), weight: .medium)]
+            )
+        }
         button.imagePosition = .imageLeading
 
         // Rich tooltip — hover the menu bar icon for the full status
         button.toolTip = buildTooltip()
         button.setAccessibilityLabel(accessibilityLabelForCurrentState(syncing: syncing))
+        // VoiceOver value: the headline number the sighted user sees.
+        if viewModel.usage.isConnected {
+            button.setAccessibilityValue("\(L.currentSession): \(Int(viewModel.usage.sessionUsagePercent))%")
+        } else {
+            button.setAccessibilityValue(L.notLoggedIn)
+        }
 
         // Sync-state blink: alternate slit ↔ dots every 250 ms while syncing.
         if syncing {
@@ -216,15 +267,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             lines.append("\(L.weeklyLimits): \(weekly)%")
         }
         if let last = viewModel.usage.lastSyncTime {
-            let df = DateFormatter()
-            df.dateFormat = "HH:mm"
-            lines.append("⟳ \(df.string(from: last))")
+            lines.append("⟳ \(Self.tooltipTimeFormatter.string(from: last))")
         }
         // Surface the Claude Code activity state on hover so users know
         // what the changing face means.
         switch viewModel.claudeActivity {
-        case .active:   lines.append("● Claude Code — active")
-        case .sleeping: lines.append("· Claude Code — sleeping")
+        case .active:   lines.append(L.tooltipClaudeActive)
+        case .sleeping: lines.append(L.tooltipClaudeSleeping)
         case .idle:     break  // no line when Claude isn't running
         }
         return lines.joined(separator: "\n")
@@ -232,11 +281,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// VoiceOver announcement for the current menu-bar face.
     private func accessibilityLabelForCurrentState(syncing: Bool) -> String {
-        if syncing { return "Claude Usage Widget — syncing" }
+        if syncing { return "\(L.appTitle) — \(L.sync)" }
         switch viewModel.claudeActivity {
-        case .active:   return "Claude Usage Widget — Claude Code active"
-        case .sleeping: return "Claude Usage Widget — Claude Code sleeping"
-        case .idle:     return "Claude Usage Widget"
+        case .active:   return "\(L.appTitle) — \(L.tooltipClaudeActive)"
+        case .sleeping: return "\(L.appTitle) — \(L.tooltipClaudeSleeping)"
+        case .idle:     return L.appTitle
         }
     }
 
@@ -297,10 +346,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.blinkOpen.toggle()
             let pct = self.viewModel.usage.isConnected ? self.viewModel.usage.sessionUsagePercent : 0
             let face: IconExpression = self.blinkOpen ? .idle : .syncing
-            button.image = createMenuBarIcon(size: NSSize(width: 18, height: 18),
-                                              percent: pct,
-                                              expression: face)
+            self.iconLayer?.contents = createMenuBarIcon(size: NSSize(width: 18, height: 18),
+                                                          percent: pct,
+                                                          expression: face)
         }
+        timer.tolerance = 0.05
         blinkTimer = timer
     }
 
@@ -335,20 +385,56 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.layer?.removeAnimation(forKey: Self.wobbleAnimKey)
     }
 
+    /// "HH:mm" for the hover tooltip — cached; DateFormatter init is ~ms.
+    private static let tooltipTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
     // MARK: - Core Animation plumbing
 
     private static let bounceAnimKey = "cuw.bounce"
     private static let pulseAnimKey  = "cuw.pulse"
     private static let wobbleAnimKey = "cuw.wobble"
 
-    /// The status-bar button's backing layer, created on demand. All motion
-    /// runs as repeating CABasicAnimations on this layer — the render server
-    /// composites them without waking our process, unlike the previous
-    /// Timer-based frame/alpha mutation (12–33 wakeups/sec on the main thread).
+    /// The icon's dedicated sublayer, created on demand. All motion runs as
+    /// repeating CABasicAnimations on this layer — the render server
+    /// composites them without waking our process, and because only the icon
+    /// lives here the % text in the button title stays perfectly still.
     private func animatableLayer() -> CALayer? {
         guard let button = statusItem.button else { return nil }
+        return ensureIconLayer(on: button)
+    }
+
+    private func ensureIconLayer(on button: NSStatusBarButton) -> CALayer {
         button.wantsLayer = true
-        return button.layer
+        if let l = iconLayer, l.superlayer === button.layer { return l }
+        let l = CALayer()
+        l.contentsGravity = .resizeAspect
+        button.layer?.addSublayer(l)
+        iconLayer = l
+        return l
+    }
+
+    /// Sync the sublayer's image + frame with the button's current layout.
+    /// Called on every repaint; the frame tracks the (invisible) spacer
+    /// image's rect so the icon sits exactly where AppKit would draw it.
+    private func positionIconLayer(on button: NSStatusBarButton, image: NSImage) {
+        let layer = ensureIconLayer(on: button)
+        layer.contents = image
+        button.layoutSubtreeIfNeeded()
+        if let cell = button.cell as? NSButtonCell {
+            layer.frame = cell.imageRect(forBounds: button.bounds)
+        } else {
+            layer.frame = CGRect(x: 4,
+                                 y: (button.bounds.height - 18) / 2,
+                                 width: 18, height: 18)
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        viewModel.flushPendingWrites()
     }
 
     @objc func togglePopover() {
@@ -356,6 +442,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             popover.performClose(nil)
             eventMonitor?.stop()
         } else if let button = statusItem.button {
+            // Pinned popovers must not be .transient or AppKit closes them
+            // on focus loss before our event monitor gets a say.
+            popover.behavior = viewModel.keepOnTop ? .applicationDefined : .transient
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             // IMPORTANT: Activate app and make popover key window
             NSApp.activate(ignoringOtherApps: true)

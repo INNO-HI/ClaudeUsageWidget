@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] — 2026-07-06
+
+36 improvements in one pass, sourced from a 4-dimension automated scan (50 findings) plus targeted implementation. Grouped below.
+
+### New features
+- **Opus weekly pool** — `seven_day_opus` is now parsed and shown as its own row in the Weekly Limits card (only when your plan has an Opus pool).
+- **Extra-usage surfaced** — when `extra_usage.is_enabled` is on, the plan name shows "Max (Extra)" and the copy-summary output includes the flag.
+- **Session-reset notification** — optional "Notify when session resets" toggle fires when a fresh 5-hour window starts.
+- **Copy usage summary** — footer button + `⌘⇧C` copies a plain-text summary (session %, weekly pools, reset time) to the clipboard.
+- **Menu-bar metric picker** — show the 5-hour session % or the 7-day weekly % in the menu bar.
+- **"Keep on Top" now actually works** — the previously-dead toggle pins the popover open (outside clicks no longer dismiss it).
+- **Status-line bridge** now parses `seven_day_sonnet` and `seven_day_opus` — the Sonnet row no longer shows 0 % whenever the bridge is fresh.
+- **CSV/history now records Sonnet %** (new optional column; old history files still load).
+
+### Performance & battery
+- **~15 redundant config writes at every launch eliminated** — `loadConfig()` was re-triggering `saveConfig()` (plus an unintended `SMAppService` register and a notification-permission request) through every `@Published` `didSet`. An `isLoadingConfig` guard now suppresses the echo.
+- **Config + history writes moved off the main thread** (dedicated utility queues, atomic writes, error logging instead of `try?` swallow).
+- **One repaint per sync instead of three** — `fetchUsage` now assigns the `usage` struct once instead of mutating three fields separately.
+- **Menu-bar icon cache** — the icon space is 12 images (3 colour buckets × 4 expressions); they're rendered once and reused, so the 4 Hz sync blink swaps cached images instead of re-rasterizing.
+- **Subprocess wait is event-driven** — `runProcessWithTimeout` uses a termination-handler semaphore instead of polling `isRunning` at 20 Hz.
+- **Activity polling skipped entirely** when "Animated menu-bar face" is off.
+- **10 DateFormatter/ISO8601DateFormatter allocations cached** across Models, UsageService, and AppDelegate (formatter init is ~ms of ICU work; several sat in per-sync or per-render paths).
+- **`Timer.tolerance` on all 5 timers** — lets macOS coalesce wakeups (sync, activity poll, mood decay, blink).
+- **Sparkline bucketing computed once per render** (was 3-4 passes: fill + line + dot each recomputed).
+- **NSLog → os_log** for the 9 remaining call sites (new `sync` category; no more eager formatting on hot paths).
+
+### Localization & accessibility
+- Menu-bar tooltip activity lines, VoiceOver labels, and the status-button accessibility value are now fully localized (EN/KO/JA/ZH).
+- Buddy: "Hatch your buddy!" / "Hatching..." localized; stat names translated for JA/ZH; pet/feed buttons get human-readable VoiceOver labels; ASCII art reads as a proper summary instead of garbage; mood hearts announce "Mood N of 5"; stat bars expose name + value.
+- "manual" sync-interval option localized.
+- Session ring exposes a localized `accessibilityValue` (percent + reset time).
+- Hidden keyboard-shortcut buttons marked `accessibilityHidden`.
+- Progress bars expose their percentage to VoiceOver.
+- **Monospaced digits** in the menu-bar title — the text (and every icon left of it) no longer shifts as numbers tick.
+
+### Verification pass (adversarial review before release)
+A 3-lens adversarial review of this batch caught 9 defects before shipping; all fixed:
+- **loadConfig else-splice** would have silently reset upgrading users' menu-bar format to `%` (the legacy fallback got re-attached to the wrong condition during editing).
+- **Missing `$menuBarMetric` sink** — the new Session/Weekly picker wouldn't repaint the menu bar until the next sync (never, in manual mode).
+- Stale "Claude active" tooltip after disabling the animated face (activity now resets to idle).
+- Legacy-config migration write was suppressed by the new load guard (now persisted explicitly once).
+- `clearHistory` could race an in-flight async save and resurrect the file (now routed through the same serial queue).
+- "Keep on Top" now applies to the already-open popover, not just the next open.
+- Pending async config/history writes are flushed in `applicationWillTerminate` (Quit right after toggling a setting no longer loses it).
+- Extra-usage header chip removed (overflowed the header; redundant with the "Max (Extra)" plan name).
+- Buddy accessibility strings now go through `L` with all four languages.
+
+### Stability & code quality
+- `UsageViewModel.deinit` invalidates all three repeating timers.
+- Event-monitor stop is now symmetric on outside-click close (was restart-leaking).
+- `UsageProgressBar` dead parameters (`showScale`/`showIcon` — always false) removed.
+- Dead `VisualEffectBlur` wrapper removed (glassmorphism was dropped in v1.2.0).
+- `formatMenuBarText` + `buildHistoryCSV` extracted to CoreLogic with 11 new tests. **Total: 51 tests.**
+
+---
+
 ## [1.5.6] — 2026-07-03
 
 ### Fixed

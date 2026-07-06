@@ -220,7 +220,11 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.5.6 (latest)
+### v1.6.0 (latest)
+- **36 improvements**: Opus weekly pool row · session-reset notifications · copy usage summary (⌘⇧C) · menu-bar metric picker · working "Keep on Top" · big performance pass (launch writes, file I/O off main, icon cache, event-driven subprocess waits) · full 4-language tooltips/VoiceOver · monospaced menu-bar digits · icon-only animation (the % text no longer moves)
+- 9 pre-release defects caught by adversarial review, including a settings-loss regression for upgrading users
+
+### v1.5.6
 - Fixed **~20% constant CPU usage** — wobble/pulse/bounce moved from main-thread Timers to Core Animation (render server). Measured 20%+ → 0.0%
 
 ### v1.5.5

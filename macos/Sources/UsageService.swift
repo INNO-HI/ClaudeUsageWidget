@@ -14,6 +14,25 @@ class ClaudeUsageService {
 
     private let usageURL = "https://api.anthropic.com/api/oauth/usage"
 
+    // Cached formatters — DateFormatter/ISO8601DateFormatter init is expensive
+    // and parseUsageResponse runs on every sync tick.
+    private static let resetDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEE h:mm a"
+        f.locale = Locale(identifier: "en_US")
+        return f
+    }()
+    private static let isoFractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+    private static let isoPlain: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
     enum ServiceError: LocalizedError {
         case noCredentials
         case keychainError(String)
@@ -238,11 +257,17 @@ class ClaudeUsageService {
                 usage.weeklyAllModelsPercent = sevenDay["used_percentage"] as? Double ?? 0
                 if let resetsAt = sevenDay["resets_at"] as? Double {
                     let date = Date(timeIntervalSince1970: resetsAt)
-                    let formatter = DateFormatter()
-                    formatter.dateFormat = "EEE h:mm a"
-                    formatter.locale = Locale(identifier: "en_US")
-                    usage.weeklyAllModelsResetDate = formatter.string(from: date)
+                    usage.weeklyAllModelsResetDate = Self.resetDateFormatter.string(from: date)
                 }
+            }
+            // Bridge previously dropped the sonnet/opus pools, so the Sonnet
+            // row showed 0% whenever the bridge was fresh. Parse them too.
+            if let sonnet = rateLimits["seven_day_sonnet"] as? [String: Any] {
+                usage.weeklySonnetPercent = sonnet["used_percentage"] as? Double ?? 0
+            }
+            if let opus = rateLimits["seven_day_opus"] as? [String: Any] {
+                usage.weeklyOpusPercent = opus["used_percentage"] as? Double ?? 0
+                usage.hasOpusLimit = true
             }
         }
 
@@ -362,10 +387,17 @@ class ClaudeUsageService {
             usage.weeklySonnetPercent = sonnet["utilization"] as? Double ?? 0
         }
 
-        // Plan detection from extra_usage
+        // Seven-day opus (null for plans without an opus pool)
+        if let opus = json["seven_day_opus"] as? [String: Any] {
+            usage.weeklyOpusPercent = opus["utilization"] as? Double ?? 0
+            usage.hasOpusLimit = true
+        }
+
+        // Extra usage (pay-per-use overflow beyond plan limits)
         if let extraUsage = json["extra_usage"] as? [String: Any],
            let isEnabled = extraUsage["is_enabled"] as? Bool, isEnabled {
             usage.planName = "Max (Extra)"
+            usage.extraUsageEnabled = true
         }
 
         return usage
@@ -374,37 +406,14 @@ class ClaudeUsageService {
     // MARK: - Date Helpers
 
     private func secondsUntil(isoDate: String) -> Int {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        if let date = formatter.date(from: isoDate) {
+        if let date = Self.isoFractional.date(from: isoDate) ?? Self.isoPlain.date(from: isoDate) {
             return max(0, Int(date.timeIntervalSinceNow))
         }
-
-        // Try without fractional seconds
-        formatter.formatOptions = [.withInternetDateTime]
-        if let date = formatter.date(from: isoDate) {
-            return max(0, Int(date.timeIntervalSinceNow))
-        }
-
         return 0
     }
 
     private func formatResetDate(isoDate: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        var date = formatter.date(from: isoDate)
-        if date == nil {
-            formatter.formatOptions = [.withInternetDateTime]
-            date = formatter.date(from: isoDate)
-        }
-
-        guard let resetDate = date else { return "" }
-
-        let displayFormatter = DateFormatter()
-        displayFormatter.dateFormat = "EEE h:mm a"
-        displayFormatter.locale = Locale(identifier: "en_US")
-        return displayFormatter.string(from: resetDate)
+        guard let resetDate = Self.isoFractional.date(from: isoDate) ?? Self.isoPlain.date(from: isoDate) else { return "" }
+        return Self.resetDateFormatter.string(from: resetDate)
     }
 }
