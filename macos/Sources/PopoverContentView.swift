@@ -816,7 +816,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.6.0")
+            Text("v1.6.1")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -1315,10 +1315,11 @@ private var menuBarIconCache: [String: NSImage] = [:]
 func createMenuBarIcon(
     size: NSSize = NSSize(width: 18, height: 18),
     percent: Double = 0,
-    expression: IconExpression = .idle
+    expression: IconExpression = .idle,
+    bakeSleepZ: Bool = true
 ) -> NSImage {
     let colorBucket = percent >= 80 ? 2 : (percent >= 50 ? 1 : 0)
-    let cacheKey = "\(expression)-\(colorBucket)-\(Int(size.width))"
+    let cacheKey = "\(expression)-\(colorBucket)-\(Int(size.width))-\(bakeSleepZ)"
     if let cached = menuBarIconCache[cacheKey] { return cached }
 
     let fillColor = menuBarIconColor(for: percent)
@@ -1423,7 +1424,7 @@ func createMenuBarIcon(
         // .sleeping gets a tiny "z" mark in the top-right corner so the
         // closed eyes read as "sleeping" rather than "syncing slits".
         // Drawn as a thin Z made of three short segments.
-        if expression == .sleeping {
+        if expression == .sleeping && bakeSleepZ {
             let zPath = NSBezierPath()
             zPath.lineWidth = max(0.75, w * 0.5)
             zPath.lineCapStyle = .round

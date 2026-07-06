@@ -7,6 +7,29 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.6.1</title>
+            <sparkle:shortVersionString>1.6.1</sparkle:shortVersionString>
+            <sparkle:version>17</sparkle:version>
+            <pubDate>Sun, 06 Jul 2026 18:30:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Motion system 2.0 — a face with personality</h2>
+                <ul>
+                    <li>Idle: natural blink at a random 4–7 s interval</li>
+                    <li>Sleeping: floating "z" drifts up and fades + slow body breathing</li>
+                    <li>Active: typing-burst rhythm (rattle · rest · rattle) instead of constant shake</li>
+                    <li>Wake-up pop when Claude starts working; happy double-hop when a sync succeeds</li>
+                    <li>Still 0% CPU (pure Core Animation), % text never moves, Reduce Motion respected</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.6.1-macos/ClaudeUsageWidget.dmg"
+                length="2376345"
+                type="application/octet-stream"
+                sparkle:edSignature="+/+5W8GYtFP6DFtDKkFmrDj+ddXsFP1YTdbpJu7p79SIolrrVd9f27GSDAospHhvY83Vfvm+Vr7rCSwE3sT8Dw==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.6.0</title>
             <sparkle:shortVersionString>1.6.0</sparkle:shortVersionString>
             <sparkle:version>16</sparkle:version>

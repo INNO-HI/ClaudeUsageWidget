@@ -220,7 +220,10 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.6.0 (latest)
+### v1.6.1 (latest)
+- **Motion system 2.0** — natural idle blink · floating sleep-z + breathing · typing-burst work rhythm · wake-up pop · happy hop on sync success. Still 0% CPU, % text pinned, Reduce Motion respected
+
+### v1.6.0
 - **36 improvements**: Opus weekly pool row · session-reset notifications · copy usage summary (⌘⇧C) · menu-bar metric picker · working "Keep on Top" · big performance pass (launch writes, file I/O off main, icon cache, event-driven subprocess waits) · full 4-language tooltips/VoiceOver · monospaced menu-bar digits · icon-only animation (the % text no longer moves)
 - 9 pre-release defects caught by adversarial review, including a settings-loss regression for upgrading users
 

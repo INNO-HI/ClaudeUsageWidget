@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.1] — 2026-07-06
+
+### Motion system 2.0 — a face with personality
+
+All motion remains pure Core Animation (0 % CPU), icon-layer-only (the % text never moves), and fully disabled by Reduce Motion or the Settings toggle.
+
+| State | Motion |
+|---|---|
+| Idle | **Natural blink** — eyes close for 120 ms at a random 4–7 s interval |
+| Sleeping | **Floating "z"** drifts up from the head and fades (2.2 s loop) + slow body **breathing** (scale 1↔1.03) |
+| Active | **Typing-burst rhythm** — rapid rattle · rest · short rattle · rest (2 s loop), replacing the constant-frequency shake |
+| Sleeping → Active | **Wake-up pop** — startled scale-up (1→1.18→0.95→1, 0.35 s) |
+| Sync success | **Happy hop** — two diminishing bounces (0.5 s) |
+| Syncing | eye-blink + soft lift (unchanged) |
+| ≥ alert threshold | alpha pulse (unchanged) |
+
+### Internal
+- `createMenuBarIcon` gains `bakeSleepZ:` — while the animated ambience runs, the "z" is a separate `CATextLayer` instead of baked pixels (cache key extended).
+- New one-shot keys `cuw.wakepop` / `cuw.happyhop`, loop keys `cuw.breath` / `cuw.zfloat`; transition detection via `lastExpression` / `wasSyncing`.
+- Idle blink is the only timer-driven piece (one-shot, random reschedule, 0.5 s tolerance) — two cached-image swaps every ~5 s.
+
+---
+
 ## [1.6.0] — 2026-07-06
 
 36 improvements in one pass, sourced from a 4-dimension automated scan (50 findings) plus targeted implementation. Grouped below.

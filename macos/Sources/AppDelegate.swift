@@ -22,6 +22,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// bounce / pulse / blink) targets this layer, so the % text — which
     /// lives in the button's own title — never moves.
     private var iconLayer: CALayer?
+    /// Floating "z" text layer shown while sleeping (drifts up and fades).
+    private var sleepZLayer: CATextLayer?
+    /// Natural idle blink: one-shot timer rescheduled at a random 4–7 s interval.
+    private var idleBlinkTimer: Timer?
+    /// Last expression actually rendered — used to detect transitions so
+    /// one-shot animations (wake-up pop, happy hop) fire exactly once.
+    private var lastExpression: IconExpression = .idle
+    private var wasSyncing = false
     /// Transparent 18×18 placeholder assigned to button.image purely to
     /// reserve the icon's layout slot; the visible icon is iconLayer.contents.
     private static let iconSpacer: NSImage = {
@@ -189,9 +197,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             expression = .idle
         }
+        // While the animated ambience is active, the sleeping face's "z" is a
+        // separate floating layer — don't bake it into the image too.
+        let animatedSleep = expression == .sleeping
+            && viewModel.showMenuBarExpressions
+            && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         let iconImage = createMenuBarIcon(size: NSSize(width: 18, height: 18),
                                            percent: pct,
-                                           expression: expression)
+                                           expression: expression,
+                                           bakeSleepZ: !animatedSleep)
         button.image = Self.iconSpacer  // reserves layout space only
         positionIconLayer(on: button, image: iconImage)
 
@@ -224,6 +238,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             stopBlinkAnimation()
         }
+
+        // ── Personality one-shots & per-state loops ──
+        let motionAllowed = viewModel.showMenuBarExpressions
+            && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+
+        // Wake-up pop: sleeping → active
+        if motionAllowed, lastExpression == .sleeping, expression == .activeClaude {
+            playWakeUpPop()
+        }
+        // Happy hop: a sync just finished successfully
+        if motionAllowed, wasSyncing, !syncing, viewModel.usage.isConnected {
+            playHappyHop()
+        }
+        wasSyncing = syncing
+
+        // Sleeping ambience: floating z + slow breathing
+        if motionAllowed, expression == .sleeping {
+            startSleepAmbience(on: button, percent: pct)
+        } else {
+            stopSleepAmbience()
+        }
+
+        // Natural idle blink (only while plain idle; active has its own rhythm)
+        if motionAllowed, expression == .idle, !syncing {
+            scheduleIdleBlink(percent: pct)
+        } else {
+            cancelIdleBlink()
+        }
+
+        lastExpression = expression
 
         // Manage warning pulse based on user's low threshold
         let shouldPulse = !syncing
@@ -361,22 +405,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Wobble Shake (Claude actively running)
 
-    /// Energetic horizontal vibration to signal "Claude Code is actively
-    /// running on this machine". ±1.5 px at ~3 Hz — visible enough to draw
-    /// the eye but not big enough to bump neighbouring menu-bar icons.
-    /// Runs entirely on the render server via Core Animation.
+    /// "Typing burst" rhythm to signal "Claude Code is actively working":
+    /// a rapid left-right rattle, a beat of rest, another rattle — far more
+    /// alive than the previous constant-frequency shake. Pure Core Animation.
     private func startWobbleAnimation() {
         guard !wobbleActive else { return }
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return }
         guard let layer = animatableLayer() else { return }
         wobbleActive = true
-        let anim = CABasicAnimation(keyPath: "transform.translation.x")
-        anim.fromValue = -1.5
-        anim.toValue = 1.5
-        anim.duration = 0.16   // full left↔right sweep ≈ 3 Hz round trip
-        anim.autoreverses = true
+        let anim = CAKeyframeAnimation(keyPath: "transform.translation.x")
+        // burst (8 swings) · rest · short burst (4 swings) · rest — 2.0 s loop
+        anim.values = [0, -1.5, 1.5, -1.5, 1.5, -1.5, 1.5, -1, 0,   // burst
+                       0, 0,                                        // rest
+                       -1.5, 1.5, -1.5, 1, 0,                       // short burst
+                       0, 0]                                        // rest
+        anim.keyTimes = [0, 0.045, 0.09, 0.135, 0.18, 0.225, 0.27, 0.31, 0.35,
+                         0.36, 0.55,
+                         0.595, 0.64, 0.685, 0.72, 0.75,
+                         0.76, 1.0]
+        anim.duration = 2.0
         anim.repeatCount = .infinity
-        anim.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        anim.calculationMode = .linear
         layer.add(anim, forKey: Self.wobbleAnimKey)
     }
 
@@ -392,11 +441,119 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return f
     }()
 
+    // MARK: - Personality motions
+
+    /// Sleeping ambience: the body breathes slowly and a small "z" drifts up
+    /// from the head and fades — the classic cartoon sleep loop.
+    private func startSleepAmbience(on button: NSStatusBarButton, percent: Double) {
+        guard let layer = animatableLayer() else { return }
+
+        if layer.animation(forKey: Self.breathAnimKey) == nil {
+            let breath = CABasicAnimation(keyPath: "transform.scale")
+            breath.fromValue = 1.0
+            breath.toValue = 1.03
+            breath.duration = 1.6
+            breath.autoreverses = true
+            breath.repeatCount = .infinity
+            breath.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(breath, forKey: Self.breathAnimKey)
+        }
+
+        if sleepZLayer == nil {
+            let z = CATextLayer()
+            z.string = "z"
+            z.font = NSFont.boldSystemFont(ofSize: 8)
+            z.fontSize = 8
+            z.foregroundColor = NSColor.white.withAlphaComponent(0.9).cgColor
+            z.alignmentMode = .center
+            z.contentsScale = button.window?.backingScaleFactor ?? 2
+            button.layer?.addSublayer(z)
+            sleepZLayer = z
+
+            let rise = CABasicAnimation(keyPath: "transform.translation.y")
+            rise.fromValue = 0
+            rise.toValue = 7
+            let fade = CABasicAnimation(keyPath: "opacity")
+            fade.fromValue = 1.0
+            fade.toValue = 0.0
+            let group = CAAnimationGroup()
+            group.animations = [rise, fade]
+            group.duration = 2.2
+            group.repeatCount = .infinity
+            group.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            z.add(group, forKey: "cuw.zfloat")
+        }
+        // Track the icon's current frame (title width changes move it)
+        if let iconFrame = iconLayer?.frame {
+            sleepZLayer?.frame = CGRect(x: iconFrame.maxX - 6, y: iconFrame.maxY - 6,
+                                        width: 10, height: 10)
+        }
+    }
+
+    private func stopSleepAmbience() {
+        statusItem.button?.layer?.sublayers?.forEach { if $0 === sleepZLayer { $0.removeFromSuperlayer() } }
+        sleepZLayer = nil
+        iconLayer?.removeAnimation(forKey: Self.breathAnimKey)
+    }
+
+    /// One-shot: sleeping → active. A quick startled "pop" (scale up, settle).
+    private func playWakeUpPop() {
+        guard let layer = animatableLayer() else { return }
+        let pop = CAKeyframeAnimation(keyPath: "transform.scale")
+        pop.values = [1.0, 1.18, 0.95, 1.0]
+        pop.keyTimes = [0, 0.4, 0.7, 1.0]
+        pop.duration = 0.35
+        pop.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        layer.add(pop, forKey: "cuw.wakepop")
+    }
+
+    /// One-shot: sync succeeded. Two happy diminishing hops.
+    private func playHappyHop() {
+        guard let layer = animatableLayer() else { return }
+        let hop = CAKeyframeAnimation(keyPath: "transform.translation.y")
+        hop.values = [0, 4, 0, 2, 0]   // AppKit y-up inside the layer: positive = up
+        hop.keyTimes = [0, 0.25, 0.5, 0.75, 1.0]
+        hop.duration = 0.5
+        hop.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        layer.add(hop, forKey: "cuw.happyhop")
+    }
+
+    /// Natural idle blink — fires once at a random 4–7 s delay, closes the
+    /// eyes for 120 ms, then reschedules itself. Keeps the face feeling
+    /// alive without a constant animation.
+    private func scheduleIdleBlink(percent: Double) {
+        guard idleBlinkTimer == nil else { return }
+        let delay = Double.random(in: 4.0...7.0)
+        let timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            self.idleBlinkTimer = nil
+            // Still idle? (state may have changed while we waited)
+            guard self.lastExpression == .idle,
+                  self.viewModel.showMenuBarExpressions,
+                  !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+            let pct = self.viewModel.usage.isConnected ? self.viewModel.usage.sessionUsagePercent : 0
+            self.iconLayer?.contents = createMenuBarIcon(percent: pct, expression: .syncing)  // slits = closed
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+                guard let self = self, self.lastExpression == .idle else { return }
+                self.iconLayer?.contents = createMenuBarIcon(percent: pct, expression: .idle)
+                self.scheduleIdleBlink(percent: pct)  // next blink
+            }
+        }
+        timer.tolerance = 0.5
+        idleBlinkTimer = timer
+    }
+
+    private func cancelIdleBlink() {
+        idleBlinkTimer?.invalidate()
+        idleBlinkTimer = nil
+    }
+
     // MARK: - Core Animation plumbing
 
     private static let bounceAnimKey = "cuw.bounce"
     private static let pulseAnimKey  = "cuw.pulse"
     private static let wobbleAnimKey = "cuw.wobble"
+    private static let breathAnimKey = "cuw.breath"
 
     /// The icon's dedicated sublayer, created on demand. All motion runs as
     /// repeating CABasicAnimations on this layer — the render server
