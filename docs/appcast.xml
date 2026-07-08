@@ -7,6 +7,27 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.6.6</title>
+            <sparkle:shortVersionString>1.6.6</sparkle:shortVersionString>
+            <sparkle:version>22</sparkle:version>
+            <pubDate>Wed, 08 Jul 2026 16:30:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>The whole character moves now — a little repertoire of motions</h2>
+                <ul>
+                    <li>The menu-bar face is drawn as a full vector character that can perform real motions, not just blink: it <b>hops</b> (crouch → leap with wide eyes → land squash → rebound), <b>wiggles</b> side to side, <b>nods</b>, <b>glances around</b>, blinks / double-blinks, <b>peeks</b>, and gets <b>excited</b></li>
+                    <li>Motions play at random intervals (~5-10s idle, ~2.5-5s while Claude works), weighted so quiet blinks dominate and the big hops/wiggles are occasional surprises</li>
+                    <li>Still 0% CPU, % text never moves, Reduce Motion + the animation toggle respected</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.6.6-macos/ClaudeUsageWidget.dmg"
+                length="2410479"
+                type="application/octet-stream"
+                sparkle:edSignature="zqiaIeTbcCdkZYeHuSzjanZ+Jud2iLG9iUMyJr1JEhGAjvF/lueUO/17s1twOHBecI7W+Ax6J4JDb8MWXsmqDQ==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.6.5</title>
             <sparkle:shortVersionString>1.6.5</sparkle:shortVersionString>
             <sparkle:version>21</sparkle:version>

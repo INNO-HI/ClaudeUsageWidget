@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.6] — 2026-07-08
+
+### Added
+- **The whole character animates now, not just the eyes.** The menu-bar face is drawn as a fully parametric vector character (body squash/stretch, vertical hop, rotation, and eye open/shift), so it can perform real little motions — a **library of "동작"**:
+  - **hop** — crouches, leaps up stretched with wide eyes, lands with a squash and a rebound
+  - **wiggle** — tilts side to side
+  - **nod** — a quick head bob
+  - **look around** — eyes glance left/right
+  - **blink / double-blink**
+  - **peek** — glances with a little head tilt
+  - **excited** — a double-blink into a hop
+- Motions play at random intervals (~5–10 s idle, ~2.5–5 s while Claude works), weighted so quiet blinks dominate and the big hops/wiggles are occasional surprises. The character has personality without ever being constantly busy.
+
+### Internal
+- `createMenuBarIcon` gains `squashY` / `offsetY` / `tiltDeg` / `eyeOpen` pose params applied via an `NSAffineTransform` around the icon centre; cache key quantizes them so the image cache stays bounded.
+- AppDelegate's `CharFrame` + `characterMotion(_:)` define the motion library; `playCharacterFrames` swaps cached pose images on the icon sublayer. Still 0 % CPU, % text pinned, Reduce Motion + toggle respected.
+
+---
+
 ## [1.6.5] — 2026-07-08
 
 ### Added

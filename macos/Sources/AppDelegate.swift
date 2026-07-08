@@ -550,46 +550,94 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         characterTimer = t
     }
 
+    /// One keyframe of a character motion. Everything except `dur` maps
+    /// straight to createMenuBarIcon's pose params.
+    private struct CharFrame {
+        var eyeShift: CGFloat = 0
+        var squashY: CGFloat = 1.0
+        var offsetY: CGFloat = 0
+        var tiltDeg: CGFloat = 0
+        var eyeOpen: CGFloat = 1.0
+        var blink: Bool = false   // force slit eyes for this frame
+        var dur: TimeInterval
+    }
+
+    /// The library of "동작" — distinct little motions the character performs.
+    private func characterMotion(_ name: String) -> [CharFrame] {
+        switch name {
+        case "blink":
+            return [CharFrame(eyeOpen: 0.12, dur: 0.09), CharFrame(dur: 0)]
+        case "doubleBlink":
+            return [CharFrame(eyeOpen: 0.12, dur: 0.08), CharFrame(dur: 0.10),
+                    CharFrame(eyeOpen: 0.12, dur: 0.08), CharFrame(dur: 0)]
+        case "lookAround":
+            return [CharFrame(eyeShift: -1.3, dur: 0.30), CharFrame(eyeShift: -1.3, dur: 0.22),
+                    CharFrame(eyeShift:  1.3, dur: 0.38), CharFrame(eyeShift:  1.3, dur: 0.22),
+                    CharFrame(dur: 0)]
+        case "hop":
+            return [CharFrame(squashY: 0.85, offsetY: -0.6, dur: 0.09),           // crouch
+                    CharFrame(squashY: 1.12, offsetY:  3.0, eyeOpen: 1.15, dur: 0.15),// leap (stretched, wide-eyed)
+                    CharFrame(squashY: 0.88, offsetY:  0.0, dur: 0.10),           // land squash
+                    CharFrame(squashY: 1.03, dur: 0.08),                          // rebound
+                    CharFrame(dur: 0)]
+        case "wiggle":
+            return [CharFrame(tiltDeg:  11, dur: 0.10), CharFrame(tiltDeg: -11, dur: 0.13),
+                    CharFrame(tiltDeg:   7, dur: 0.10), CharFrame(tiltDeg:  -4, dur: 0.08),
+                    CharFrame(dur: 0)]
+        case "nod":
+            return [CharFrame(squashY: 0.90, offsetY: -1.2, dur: 0.12),
+                    CharFrame(squashY: 1.06, offsetY:  0.6, dur: 0.12),
+                    CharFrame(squashY: 0.94, offsetY: -0.4, dur: 0.10),
+                    CharFrame(dur: 0)]
+        case "peek":  // glance one way with a little head tilt, then back
+            return [CharFrame(eyeShift: 1.3, tiltDeg: -7, dur: 0.35),
+                    CharFrame(eyeShift: 1.3, tiltDeg: -7, dur: 0.30),
+                    CharFrame(dur: 0)]
+        case "excited":  // double-blink then a quick hop — reads as "!"
+            return characterMotion("doubleBlink").dropLast() + characterMotion("hop")
+        default:
+            return [CharFrame(dur: 0)]
+        }
+    }
+
     private func playCharacterBeat() {
         guard viewModel.showMenuBarExpressions,
               !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
-        let base = characterBase
-        // Weighted pick: mostly blinks, sometimes a glance.
-        let roll = Int.random(in: 0..<10)
-        let steps: [(IconExpression, CGFloat, TimeInterval)]
-        if roll < 5 {
-            // single blink
-            steps = [(.syncing, 0, 0.11), (base, 0, 0)]
-        } else if roll < 7 {
-            // double blink
-            steps = [(.syncing, 0, 0.09), (base, 0, 0.10), (.syncing, 0, 0.09), (base, 0, 0)]
-        } else {
-            // glance around: look left, hold, look right, hold, recentre
-            steps = [(base, -1.2, 0.30), (base, -1.2, 0.22),
-                     (base,  1.2, 0.38), (base,  1.2, 0.22),
-                     (base,  0.0, 0)]
-        }
+        // Weighted motion pick. Blinks are the quiet default; the bigger
+        // motions (hop / wiggle / nod / excited) show up occasionally so the
+        // character has personality without being constantly busy.
+        let active = characterBase == .activeClaude
+        let pool: [String] = active
+            ? ["blink","blink","lookAround","lookAround","nod","wiggle","hop","excited","peek"]
+            : ["blink","blink","blink","doubleBlink","lookAround","lookAround","nod","wiggle","hop","peek"]
+        let motion = pool.randomElement() ?? "blink"
         characterAnimating = true
-        playCharacterFrames(steps, index: 0) { [weak self] in
+        playCharacterFrames(characterMotion(motion), index: 0) { [weak self] in
             self?.characterAnimating = false
             self?.scheduleNextCharacterBeat()
         }
     }
 
-    private func playCharacterFrames(_ steps: [(IconExpression, CGFloat, TimeInterval)],
-                                     index: Int,
-                                     completion: @escaping () -> Void) {
-        guard index < steps.count,
+    private func playCharacterFrames(_ frames: [CharFrame], index: Int, completion: @escaping () -> Void) {
+        guard index < frames.count,
               viewModel.showMenuBarExpressions,
               !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
             completion(); return
         }
-        let (expr, shift, dur) = steps[index]
+        let f = frames[index]
         let pct = viewModel.usage.isConnected ? viewModel.usage.sessionUsagePercent : 0
-        iconLayer?.contents = createMenuBarIcon(percent: pct, expression: expr, eyeShift: shift)
-        if dur <= 0 { completion(); return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + dur) { [weak self] in
-            self?.playCharacterFrames(steps, index: index + 1, completion: completion)
+        iconLayer?.contents = createMenuBarIcon(
+            percent: pct,
+            expression: f.blink ? .syncing : characterBase,
+            eyeShift: f.eyeShift,
+            squashY: f.squashY,
+            offsetY: f.offsetY,
+            tiltDeg: f.tiltDeg,
+            eyeOpen: f.eyeOpen
+        )
+        if f.dur <= 0 { completion(); return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + f.dur) { [weak self] in
+            self?.playCharacterFrames(frames, index: index + 1, completion: completion)
         }
     }
 

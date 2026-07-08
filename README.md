@@ -220,7 +220,10 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.6.5 (latest)
+### v1.6.6 (latest)
+- **The whole character moves now** — the menu-bar face is a full vector character with a repertoire of motions: it **hops** (crouch → leap → land → rebound), **wiggles**, **nods**, glances around, blinks, peeks, and gets excited. Random intervals (weighted toward quiet blinks), 0% CPU, % text pinned, never distracting
+
+### v1.6.5
 - **Living character** — the menu-bar face plays occasional idle animations (blink, double-blink, glance left/right) like a game character. Random intervals, 0% CPU, never distracting
 
 ### v1.6.4

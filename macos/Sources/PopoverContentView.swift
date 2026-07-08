@@ -837,7 +837,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.6.5")
+            Text("v1.6.6")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -1344,10 +1344,19 @@ func createMenuBarIcon(
     percent: Double = 0,
     expression: IconExpression = .idle,
     bakeSleepZ: Bool = true,
-    eyeShift: CGFloat = 0   // horizontal glance in "24-grid" units (−1…+1)
+    eyeShift: CGFloat = 0,     // horizontal glance in "24-grid" units (−1…+1)
+    squashY: CGFloat = 1.0,    // body vertical scale (0.85 squashed … 1.15 stretched)
+    offsetY: CGFloat = 0,      // whole-body vertical hop, in 24-grid units
+    tiltDeg: CGFloat = 0,      // whole-body rotation, degrees
+    eyeOpen: CGFloat = 1.0     // eye vertical scale (1 open … 0 shut)
 ) -> NSImage {
     let bucketPct = Int((max(0, min(100, percent)) / 5).rounded()) * 5
-    let cacheKey = "\(expression)-\(bucketPct)-\(Int(size.width))-\(bakeSleepZ)-\(eyeShift)"
+    // Quantize the continuous pose params so the cache stays bounded.
+    let sqK = Int((squashY * 100).rounded())
+    let oyK = Int((offsetY * 10).rounded())
+    let tK  = Int(tiltDeg.rounded())
+    let eoK = Int((eyeOpen * 100).rounded())
+    let cacheKey = "\(expression)-\(bucketPct)-\(Int(size.width))-\(bakeSleepZ)-\(eyeShift)-\(sqK)-\(oyK)-\(tK)-\(eoK)"
     if let cached = menuBarIconCache[cacheKey] { return cached }
 
     let fillColor = menuBarIconColor(for: Double(bucketPct))
@@ -1357,6 +1366,17 @@ func createMenuBarIcon(
     let image = NSImage(size: size, flipped: false) { rect in
         let w = rect.width / 24
         let h = rect.height / 24
+
+        // Apply the whole-body pose transform (hop / squash / tilt) around
+        // the icon centre so the whole character moves, not just the eyes.
+        let ctx = NSGraphicsContext.current
+        ctx?.saveGraphicsState()
+        let xf = NSAffineTransform()
+        xf.translateX(by: rect.midX, yBy: rect.midY)
+        if tiltDeg != 0 { xf.rotate(byDegrees: tiltDeg) }
+        if squashY != 1 { xf.scaleX(by: 1, yBy: squashY) }
+        xf.translateX(by: -rect.midX, yBy: -rect.midY + offsetY * h)
+        xf.concat()
 
         let path = NSBezierPath()
 
@@ -1447,9 +1467,16 @@ func createMenuBarIcon(
         fillColor.setFill()
         path.fill()
 
+        // eyeOpen squeezes the eyes vertically (blink) while keeping them
+        // centred on their socket.
+        func squeeze(_ r: NSRect) -> NSRect {
+            guard eyeOpen < 1 else { return r }
+            let nh = max(0.6, r.height * eyeOpen)
+            return NSRect(x: r.origin.x, y: r.midY - nh / 2, width: r.width, height: nh)
+        }
         eyeColor.setFill()
-        NSBezierPath(rect: leftRect).fill()
-        NSBezierPath(rect: rightRect).fill()
+        NSBezierPath(rect: squeeze(leftRect)).fill()
+        NSBezierPath(rect: squeeze(rightRect)).fill()
 
         // .sleeping gets a tiny "z" mark in the top-right corner so the
         // closed eyes read as "sleeping" rather than "syncing slits".
@@ -1470,6 +1497,7 @@ func createMenuBarIcon(
             zPath.stroke()
         }
 
+        ctx?.restoreGraphicsState()
         return true
     }
 
