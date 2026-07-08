@@ -269,6 +269,16 @@ class ClaudeUsageService {
                 usage.weeklyOpusPercent = opus["used_percentage"] as? Double ?? 0
                 usage.hasOpusLimit = true
             }
+            // Dynamic pools from the bridge too (fable / mythos / future tiers)
+            let knownPools: Set<String> = ["seven_day", "seven_day_sonnet", "seven_day_opus"]
+            var extras: [(slug: String, percent: Double)] = []
+            for (key, value) in rateLimits {
+                guard key.hasPrefix("seven_day_"), !knownPools.contains(key),
+                      let dict = value as? [String: Any] else { continue }
+                let slug = String(key.dropFirst("seven_day_".count))
+                extras.append((slug: slug, percent: dict["used_percentage"] as? Double ?? 0))
+            }
+            usage.extraWeeklyPools = extras.sorted { $0.slug < $1.slug }
         }
 
         return usage
@@ -399,6 +409,19 @@ class ClaudeUsageService {
             usage.planName = "Max (Extra)"
             usage.extraUsageEnabled = true
         }
+
+        // Dynamic per-model pools: any seven_day_<slug> key we don't already
+        // model explicitly (fable, mythos, whatever ships next) gets its own
+        // row in the Weekly Limits card without a widget update.
+        let knownPools: Set<String> = ["seven_day", "seven_day_sonnet", "seven_day_opus"]
+        var extras: [(slug: String, percent: Double)] = []
+        for (key, value) in json {
+            guard key.hasPrefix("seven_day_"), !knownPools.contains(key),
+                  let dict = value as? [String: Any] else { continue }
+            let slug = String(key.dropFirst("seven_day_".count))
+            extras.append((slug: slug, percent: dict["utilization"] as? Double ?? 0))
+        }
+        usage.extraWeeklyPools = extras.sorted { $0.slug < $1.slug }
 
         return usage
     }

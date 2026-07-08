@@ -251,3 +251,19 @@ public func buildHistoryCSV(
     }
     return lines.joined(separator: "\n") + "\n"
 }
+
+
+// MARK: - Dynamic weekly model pools
+
+/// The usage API historically returned seven_day / seven_day_sonnet /
+/// seven_day_opus. New model tiers (e.g. the Claude 5 family's Fable)
+/// arrive as additional `seven_day_<slug>` keys. Rather than hardcoding
+/// every tier, extract the unknown slugs so the UI can render one row per
+/// pool the API actually returns.
+public func extraWeeklyPoolSlugs(fromKeys keys: [String]) -> [String] {
+    let known: Set<String> = ["seven_day", "seven_day_sonnet", "seven_day_opus"]
+    return keys
+        .filter { $0.hasPrefix("seven_day_") && !known.contains($0) }
+        .map { String($0.dropFirst("seven_day_".count)) }
+        .sorted()
+}

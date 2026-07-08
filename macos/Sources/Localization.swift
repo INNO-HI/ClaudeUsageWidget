@@ -162,6 +162,11 @@ struct L {
     static var allModels: String { t("All models", ko: "전체 모델", ja: "全モデル", zh: "全部模型") }
     static var sonnetOnly: String { t("Sonnet only", ko: "Sonnet 전용", ja: "Sonnet のみ", zh: "仅 Sonnet") }
     static var opusOnly: String { t("Opus only", ko: "Opus 전용", ja: "Opus のみ", zh: "仅 Opus") }
+    /// Generic per-model pool label for dynamically discovered tiers
+    /// (Fable, Mythos, …) — mirrors the opusOnly/sonnetOnly pattern.
+    static func modelOnly(_ name: String) -> String {
+        t("\(name) only", ko: "\(name) 전용", ja: "\(name) のみ", zh: "仅 \(name)")
+    }
     static var extraUsageOn: String { t("Extra usage on", ko: "추가 사용 켜짐", ja: "追加使用オン", zh: "已启用额外用量") }
     static func resetsAt(_ date: String) -> String {
         switch lang {

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.2] — 2026-07-07
+
+### Added
+- **Dynamic per-model weekly pools** — the Weekly Limits card now renders a row for **any** `seven_day_<model>` pool the usage API returns, not just the hardcoded Sonnet/Opus. When Anthropic ships a pool for a new tier (e.g. the Claude 5 family's **Fable**), the widget picks it up automatically — no update required. Applies to both the OAuth API path and the status-line bridge, and the pools are included in the copy-summary output.
+
+### Internal
+- `UsageData.extraWeeklyPools: [(slug, percent)]`, sorted by slug for stable row order.
+- `extraWeeklyPoolSlugs(fromKeys:)` in CoreLogic with 4 tests pinning the discovery rule (known pools excluded, sorted, non-pool keys ignored). **Total: 55 tests.**
+- Generic `L.modelOnly(_:)` label ("Fable only" / "Fable 전용" / "Fable のみ" / "仅 Fable").
+
+---
+
 ## [1.6.1] — 2026-07-06
 
 ### Motion system 2.0 — a face with personality

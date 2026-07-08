@@ -344,3 +344,23 @@ final class HistoryCSVTests: XCTestCase {
         XCTAssertTrue(buildHistoryCSV(rows: []).hasSuffix("\n"))
     }
 }
+
+
+final class ExtraWeeklyPoolTests: XCTestCase {
+    func test_detectsFableAndMythos() {
+        let keys = ["five_hour", "seven_day", "seven_day_sonnet", "seven_day_opus",
+                    "seven_day_fable", "seven_day_mythos", "extra_usage"]
+        XCTAssertEqual(extraWeeklyPoolSlugs(fromKeys: keys), ["fable", "mythos"])
+    }
+    func test_knownPoolsExcluded() {
+        let keys = ["seven_day", "seven_day_sonnet", "seven_day_opus"]
+        XCTAssertEqual(extraWeeklyPoolSlugs(fromKeys: keys), [])
+    }
+    func test_sortedOutput() {
+        let keys = ["seven_day_zeta", "seven_day_alpha"]
+        XCTAssertEqual(extraWeeklyPoolSlugs(fromKeys: keys), ["alpha", "zeta"])
+    }
+    func test_nonPoolKeysIgnored() {
+        XCTAssertEqual(extraWeeklyPoolSlugs(fromKeys: ["five_hour", "extra_usage", "seven_dayish"]), [])
+    }
+}

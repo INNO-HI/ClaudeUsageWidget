@@ -7,6 +7,27 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.6.2</title>
+            <sparkle:shortVersionString>1.6.2</sparkle:shortVersionString>
+            <sparkle:version>18</sparkle:version>
+            <pubDate>Mon, 07 Jul 2026 10:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Dynamic model pools — Fable-ready</h2>
+                <ul>
+                    <li>The Weekly Limits card now shows a row for ANY seven_day_&lt;model&gt; pool the API returns — when Anthropic ships a pool for a new tier (like the Claude 5 family's Fable), it appears automatically without a widget update</li>
+                    <li>Works on both the OAuth API and the status-line bridge; included in copy-summary</li>
+                    <li>4 new tests pin the discovery rule (55 total)</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.6.2-macos/ClaudeUsageWidget.dmg"
+                length="2396548"
+                type="application/octet-stream"
+                sparkle:edSignature="OEFA516rhYJKCRrW0lAafUZdhXx/EH9cKrqdQ6V3347oCG7MRVfGR5CNI8kckeG3H9eNgB0BsuvMRNFxJoAwCg==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.6.1</title>
             <sparkle:shortVersionString>1.6.1</sparkle:shortVersionString>
             <sparkle:version>17</sparkle:version>

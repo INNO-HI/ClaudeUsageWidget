@@ -748,6 +748,23 @@ struct PopoverContentView: View {
                     UsageProgressBar(percent: viewModel.usage.weeklyOpusPercent)
                 }
 
+                // Dynamically discovered model pools (Fable, Mythos, future tiers)
+                ForEach(viewModel.usage.extraWeeklyPools, id: \.slug) { pool in
+                    Divider().background(Theme.border.opacity(0.3))
+
+                    HStack {
+                        Text(L.modelOnly(pool.slug.capitalized))
+                            .font(AppFont.medium(12))
+                            .foregroundColor(Theme.textPrimary)
+                        Spacer()
+                        Text("\(Int(pool.percent))%")
+                            .font(AppFont.bold(12))
+                            .foregroundColor(percentColor(pool.percent))
+                    }
+
+                    UsageProgressBar(percent: pool.percent)
+                }
+
                 Divider().background(Theme.border.opacity(0.3))
 
                 // Sparkline trend
@@ -816,7 +833,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.6.1")
+            Text("v1.6.2")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 

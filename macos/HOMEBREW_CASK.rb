@@ -19,8 +19,8 @@
 #   - OR set up a GitHub Action that auto-PRs on each tag (see actions/cask-updater)
 
 cask "claude-usage-widget" do
-  version "1.6.1"
-  sha256 "03407e5c4eabf173226b424987ede9c5b11f9dda74c211e8dd5e29020fde9ec6"
+  version "1.6.2"
+  sha256 "e24a1a1e92ca8327b48d2a0864a4686376a17470667f392549738e9870140115"
 
   url "https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v#{version}-macos/ClaudeUsageWidget.dmg",
       verified: "github.com/INNO-HI/ClaudeUsageWidget/"

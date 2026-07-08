@@ -45,6 +45,10 @@ struct UsageData {
     /// seven_day_opus utilization — only present on plans with an Opus pool.
     var weeklyOpusPercent: Double = 0
     var hasOpusLimit: Bool = false
+    /// Any additional per-model weekly pools the API returns that we don't
+    /// model explicitly — e.g. `seven_day_fable` for the Claude 5 family.
+    /// (slug, utilization%) pairs, sorted by slug for stable UI order.
+    var extraWeeklyPools: [(slug: String, percent: Double)] = []
     /// extra_usage.is_enabled — pay-per-use overflow is switched on.
     var extraUsageEnabled: Bool = false
     var lastSyncTime: Date? = nil
@@ -760,6 +764,9 @@ class UsageViewModel: ObservableObject {
             lines.append("Weekly (Opus): \(Int(usage.weeklyOpusPercent))%")
         }
         lines.append("Weekly (Sonnet): \(Int(usage.weeklySonnetPercent))%")
+        for pool in usage.extraWeeklyPools {
+            lines.append("Weekly (\(pool.slug.capitalized)): \(Int(pool.percent))%")
+        }
         if usage.extraUsageEnabled { lines.append("Extra usage: enabled") }
         return lines.joined(separator: "\n")
     }

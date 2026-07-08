@@ -220,7 +220,10 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.6.1 (latest)
+### v1.6.2 (latest)
+- **Dynamic model pools** — a Weekly Limits row appears for any `seven_day_<model>` the API returns (Fable/Mythos-ready, no update needed)
+
+### v1.6.1
 - **Motion system 2.0** — natural idle blink · floating sleep-z + breathing · typing-burst work rhythm · wake-up pop · happy hop on sync success. Still 0% CPU, % text pinned, Reduce Motion respected
 
 ### v1.6.0
