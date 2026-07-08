@@ -220,7 +220,10 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.6.3 (latest)
+### v1.6.4 (latest)
+- **Usage-gradient menu-bar icon** (green → amber → red by usage) + **calmer active state** (the constant wobble is gone; the icon stays still while Claude works)
+
+### v1.6.3
 - **Shows your real per-model weekly pool** — the API moved per-model limits into a `limits` array (`scope.model.display_name`); the widget reads it so Fable/Claude-5 users see a "Fable only" row instead of a stale "Sonnet" one. Bridge no longer shows all-zero usage.
 
 ### v1.6.2

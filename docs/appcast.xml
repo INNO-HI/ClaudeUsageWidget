@@ -7,6 +7,26 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.6.4</title>
+            <sparkle:shortVersionString>1.6.4</sparkle:shortVersionString>
+            <sparkle:version>20</sparkle:version>
+            <pubDate>Tue, 08 Jul 2026 14:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Usage-gradient icon + calmer active state</h2>
+                <ul>
+                    <li>Menu-bar icon now fades green → amber → red by usage (green = room, red = near limit)</li>
+                    <li>The active state no longer wobbles — the constant shake was distracting; the icon stays still while Claude works</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.6.4-macos/ClaudeUsageWidget.dmg"
+                length="2399888"
+                type="application/octet-stream"
+                sparkle:edSignature="1Wu+pb9qdCMqntNEeGvHSqb3Wo0Gp/NPH+Kcml8uX/fMC/H+DltnOpfbmaeND87AReRt6ZCgEMtmgU7SeCZPDw==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.6.3</title>
             <sparkle:shortVersionString>1.6.3</sparkle:shortVersionString>
             <sparkle:version>19</sparkle:version>
