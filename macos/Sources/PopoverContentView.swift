@@ -837,7 +837,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.6.3")
+            Text("v1.6.4")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -1305,32 +1305,38 @@ struct ClaudeCodeIconView: View {
 
 // MARK: - Menu Bar Icon Helper
 
-/// Returns an icon coloured by usage percent:
-/// - <50%  : Claude orange (default brand)
-/// - 50–80%: warning (amber)
-/// - ≥80%  : danger (red)
+/// Smooth usage gradient: green (plenty of room) → amber (mid) → red (full).
+/// 0% #10B981 → 50% #F59E0B → 100% #F87171. Interpolated in sRGB.
 private func menuBarIconColor(for percent: Double) -> NSColor {
-    if percent >= 80 {
-        return NSColor(red: 248.0/255.0, green: 113.0/255.0, blue: 113.0/255.0, alpha: 1.0)  // #F87171
-    } else if percent >= 50 {
-        return NSColor(red: 245.0/255.0, green: 158.0/255.0, blue: 11.0/255.0, alpha: 1.0)   // #F59E0B
+    let p = max(0, min(100, percent)) / 100.0
+    let green = (r: 16.0,  g: 185.0, b: 129.0)  // #10B981
+    let amber = (r: 245.0, g: 158.0, b: 11.0)   // #F59E0B
+    let red   = (r: 248.0, g: 113.0, b: 113.0)  // #F87171
+    func lerp(_ a: Double, _ b: Double, _ t: Double) -> Double { a + (b - a) * t }
+    let c: (r: Double, g: Double, b: Double)
+    if p < 0.5 {
+        let t = p / 0.5
+        c = (lerp(green.r, amber.r, t), lerp(green.g, amber.g, t), lerp(green.b, amber.b, t))
+    } else {
+        let t = (p - 0.5) / 0.5
+        c = (lerp(amber.r, red.r, t), lerp(amber.g, red.g, t), lerp(amber.b, red.b, t))
     }
-    return NSColor(red: 217.0/255.0, green: 119.0/255.0, blue: 87.0/255.0, alpha: 1.0)        // #D97757 (Claude orange)
+    return NSColor(srgbRed: c.r/255.0, green: c.g/255.0, blue: c.b/255.0, alpha: 1.0)
 }
 
 /// Four expressions the menu-bar face can wear. The body silhouette stays
 /// constant; only the eyes (and a tiny "z" mark for sleeping) change.
 ///   .idle         — calm dots ●● (Claude binary not running)
 ///   .syncing      — horizontal slits −− (blinking; AppDelegate alternates with .idle)
-///   .activeClaude — wide alert eyes ◉◉ + side-to-side wobble (Claude working)
+///   .activeClaude — wide alert eyes ◉◉ (Claude working; no motion)
 ///   .sleeping     — eyes closed + small "z" mark (Claude running but no recent activity)
 enum IconExpression {
     case idle, syncing, activeClaude, sleeping
 }
 
-/// Cache — the icon space is tiny (3 colour buckets × 4 expressions = 12
-/// distinct 18×18 images) but createMenuBarIcon was re-rasterizing a fresh
-/// NSBezierPath render on every repaint and 4×/sec during the sync blink.
+/// Cache — the icon uses a smooth colour gradient, so we bucket percent to
+/// the nearest 5 % (≤21 buckets × 4 expressions × bakeSleepZ). Prevents a
+/// fresh NSBezierPath rasterization on every repaint and 4×/sec sync blink.
 private var menuBarIconCache: [String: NSImage] = [:]
 
 func createMenuBarIcon(
@@ -1339,11 +1345,11 @@ func createMenuBarIcon(
     expression: IconExpression = .idle,
     bakeSleepZ: Bool = true
 ) -> NSImage {
-    let colorBucket = percent >= 80 ? 2 : (percent >= 50 ? 1 : 0)
-    let cacheKey = "\(expression)-\(colorBucket)-\(Int(size.width))-\(bakeSleepZ)"
+    let bucketPct = Int((max(0, min(100, percent)) / 5).rounded()) * 5
+    let cacheKey = "\(expression)-\(bucketPct)-\(Int(size.width))-\(bakeSleepZ)"
     if let cached = menuBarIconCache[cacheKey] { return cached }
 
-    let fillColor = menuBarIconColor(for: percent)
+    let fillColor = menuBarIconColor(for: Double(bucketPct))
     // Eyes painted in white — high contrast on the warm orange/red/amber
     // body so they read clearly on both light and dark menu bars.
     let eyeColor = NSColor.white

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.4] — 2026-07-08
+
+### Changed
+- **Menu-bar icon is now a smooth usage gradient** — green when you have plenty of room, transitioning through amber to red as you approach your limit (0 % #10B981 → 50 % #F59E0B → 100 % #F87171, interpolated in sRGB). Replaces the old three-step Claude-orange / amber / red buckets.
+- **The active state no longer wobbles.** Users found the constant side-to-side shake distracting while Claude Code was working. The wide-eye expression and the usage colour already signal "active", so the icon now stays still. Idle blink, sleep ambience, sync bounce, and the warning pulse are unchanged.
+
+### Internal
+- Icon cache re-keyed to the nearest 5 % bucket (≤21 buckets) since the colour is now continuous.
+
+---
+
 ## [1.6.3] — 2026-07-08
 
 ### Fixed

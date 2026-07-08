@@ -279,16 +279,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             stopPulseAnimation()
         }
 
-        // Wobble shake when Claude Code is actively running (and we're not
-        // already syncing — sync's bounce takes priority on the y axis).
-        let shouldWobble = !syncing
-            && viewModel.claudeActivelyRunning
-            && viewModel.showMenuBarExpressions
-        if shouldWobble {
-            startWobbleAnimation()
-        } else {
-            stopWobbleAnimation()
-        }
+        // Active state no longer wobbles — users found the constant shake
+        // distracting while Claude was working. The wide-eye expression and
+        // the usage colour already signal "active"; the icon stays still.
+        stopWobbleAnimation()
     }
 
     private func buildTooltip() -> String {
