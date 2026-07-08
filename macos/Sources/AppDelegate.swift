@@ -24,8 +24,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var iconLayer: CALayer?
     /// Floating "z" text layer shown while sleeping (drifts up and fades).
     private var sleepZLayer: CATextLayer?
-    /// Natural idle blink: one-shot timer rescheduled at a random 4–7 s interval.
-    private var idleBlinkTimer: Timer?
+    /// Character animator: occasional blink/glance beats at random intervals.
+    private var characterTimer: Timer?
+    private var characterBase: IconExpression = .idle
+    private var characterAnimating = false
     /// Last expression actually rendered — used to detect transitions so
     /// one-shot animations (wake-up pop, happy hop) fire exactly once.
     private var lastExpression: IconExpression = .idle
@@ -260,11 +262,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             stopSleepAmbience()
         }
 
-        // Natural idle blink (only while plain idle; active has its own rhythm)
-        if motionAllowed, expression == .idle, !syncing {
-            scheduleIdleBlink(percent: pct)
+        // Character idle animator — occasional blinks & glances so the face
+        // feels alive without constant motion. Runs for both idle and active
+        // (active is a touch livelier, like the character is reading), and
+        // replaces both the old idle-only blink and the removed active wobble.
+        if motionAllowed, !syncing, expression == .idle || expression == .activeClaude {
+            startCharacterAnimator(base: expression)
         } else {
-            cancelIdleBlink()
+            stopCharacterAnimator()
         }
 
         lastExpression = expression
@@ -512,34 +517,80 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         layer.add(hop, forKey: "cuw.happyhop")
     }
 
-    /// Natural idle blink — fires once at a random 4–7 s delay, closes the
-    /// eyes for 120 ms, then reschedules itself. Keeps the face feeling
-    /// alive without a constant animation.
-    private func scheduleIdleBlink(percent: Double) {
-        guard idleBlinkTimer == nil else { return }
-        let delay = Double.random(in: 4.0...7.0)
-        let timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
-            guard let self = self else { return }
-            self.idleBlinkTimer = nil
-            // Still idle? (state may have changed while we waited)
-            guard self.lastExpression == .idle,
-                  self.viewModel.showMenuBarExpressions,
-                  !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
-            let pct = self.viewModel.usage.isConnected ? self.viewModel.usage.sessionUsagePercent : 0
-            self.iconLayer?.contents = createMenuBarIcon(percent: pct, expression: .syncing)  // slits = closed
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
-                guard let self = self, self.lastExpression == .idle else { return }
-                self.iconLayer?.contents = createMenuBarIcon(percent: pct, expression: .idle)
-                self.scheduleIdleBlink(percent: pct)  // next blink
-            }
-        }
-        timer.tolerance = 0.5
-        idleBlinkTimer = timer
+    // MARK: - Character animator (idle / active "living face")
+    //
+    // Occasional frame-swap animations — blink, double-blink, glance around —
+    // played at random intervals so the character feels alive without any
+    // constant motion (which users found distracting). Each frame is a cached
+    // NSImage swapped onto the icon sublayer, so CPU stays ~0. Frame morphs
+    // (eye shape / eye direction) can't be expressed as a CABasicAnimation, so
+    // this is a lightweight sprite-style player rather than a layer animation.
+
+    /// Kick off (or retarget) the animator for the given base expression.
+    private func startCharacterAnimator(base: IconExpression) {
+        characterBase = base
+        guard characterTimer == nil, !characterAnimating else { return }
+        scheduleNextCharacterBeat()
     }
 
-    private func cancelIdleBlink() {
-        idleBlinkTimer?.invalidate()
-        idleBlinkTimer = nil
+    private func stopCharacterAnimator() {
+        characterTimer?.invalidate()
+        characterTimer = nil
+        characterAnimating = false
+    }
+
+    private func scheduleNextCharacterBeat() {
+        characterTimer?.invalidate()
+        // Active is livelier ("reading"); idle rests longer between beats.
+        let range: ClosedRange<Double> = characterBase == .activeClaude ? 2.5...5.0 : 5.0...10.0
+        let t = Timer.scheduledTimer(withTimeInterval: Double.random(in: range), repeats: false) { [weak self] _ in
+            self?.playCharacterBeat()
+        }
+        t.tolerance = 0.4
+        characterTimer = t
+    }
+
+    private func playCharacterBeat() {
+        guard viewModel.showMenuBarExpressions,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+        let base = characterBase
+        // Weighted pick: mostly blinks, sometimes a glance.
+        let roll = Int.random(in: 0..<10)
+        let steps: [(IconExpression, CGFloat, TimeInterval)]
+        if roll < 5 {
+            // single blink
+            steps = [(.syncing, 0, 0.11), (base, 0, 0)]
+        } else if roll < 7 {
+            // double blink
+            steps = [(.syncing, 0, 0.09), (base, 0, 0.10), (.syncing, 0, 0.09), (base, 0, 0)]
+        } else {
+            // glance around: look left, hold, look right, hold, recentre
+            steps = [(base, -1.2, 0.30), (base, -1.2, 0.22),
+                     (base,  1.2, 0.38), (base,  1.2, 0.22),
+                     (base,  0.0, 0)]
+        }
+        characterAnimating = true
+        playCharacterFrames(steps, index: 0) { [weak self] in
+            self?.characterAnimating = false
+            self?.scheduleNextCharacterBeat()
+        }
+    }
+
+    private func playCharacterFrames(_ steps: [(IconExpression, CGFloat, TimeInterval)],
+                                     index: Int,
+                                     completion: @escaping () -> Void) {
+        guard index < steps.count,
+              viewModel.showMenuBarExpressions,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+            completion(); return
+        }
+        let (expr, shift, dur) = steps[index]
+        let pct = viewModel.usage.isConnected ? viewModel.usage.sessionUsagePercent : 0
+        iconLayer?.contents = createMenuBarIcon(percent: pct, expression: expr, eyeShift: shift)
+        if dur <= 0 { completion(); return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + dur) { [weak self] in
+            self?.playCharacterFrames(steps, index: index + 1, completion: completion)
+        }
     }
 
     // MARK: - Core Animation plumbing

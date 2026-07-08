@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.5] — 2026-07-08
+
+### Added
+- **The character is alive now.** Instead of a constant shake, the menu-bar face plays occasional *idle animations* — the way a game character does when you leave it alone: it **blinks**, **double-blinks**, and every so often **glances left and right** (the eyes actually move). Beats fire at random intervals — roughly every 5–10 s when idle, 2.5–5 s while Claude is working (a touch livelier, like it's reading) — so it feels alive without ever being busy or distracting.
+
+### Internal
+- `createMenuBarIcon` gains an `eyeShift` parameter that slides the pupils sideways for the glance frames (cache-keyed).
+- New sprite-style frame player in AppDelegate (`startCharacterAnimator` / `playCharacterBeat` / `playCharacterFrames`) replaces the old idle-only blink. Frame morphs (eye shape / direction) can't be a CABasicAnimation, so beats are cached-image swaps on the icon sublayer — CPU stays 0. Respects Reduce Motion and the Settings toggle.
+
+---
+
 ## [1.6.4] — 2026-07-08
 
 ### Changed

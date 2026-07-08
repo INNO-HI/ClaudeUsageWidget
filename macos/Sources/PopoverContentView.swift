@@ -837,7 +837,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.6.4")
+            Text("v1.6.5")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -1343,10 +1343,11 @@ func createMenuBarIcon(
     size: NSSize = NSSize(width: 18, height: 18),
     percent: Double = 0,
     expression: IconExpression = .idle,
-    bakeSleepZ: Bool = true
+    bakeSleepZ: Bool = true,
+    eyeShift: CGFloat = 0   // horizontal glance in "24-grid" units (−1…+1)
 ) -> NSImage {
     let bucketPct = Int((max(0, min(100, percent)) / 5).rounded()) * 5
-    let cacheKey = "\(expression)-\(bucketPct)-\(Int(size.width))-\(bakeSleepZ)"
+    let cacheKey = "\(expression)-\(bucketPct)-\(Int(size.width))-\(bakeSleepZ)-\(eyeShift)"
     if let cached = menuBarIconCache[cacheKey] { return cached }
 
     let fillColor = menuBarIconColor(for: Double(bucketPct))
@@ -1394,8 +1395,10 @@ func createMenuBarIcon(
         // actually reads as a face at 18×18 pixels. Each expression tweaks
         // the rectangle, then we append it as a sub-path to the same body
         // path. Even-odd fill turns the sub-paths into real cutouts.
-        let baseLeftCenterX  = 6.7  * w
-        let baseRightCenterX = 17.3 * w
+        // eyeShift glances the pupils sideways (character "looks around").
+        let dx = eyeShift * w
+        let baseLeftCenterX  = 6.7  * w + dx
+        let baseRightCenterX = 17.3 * w + dx
         let baseCenterY      = rect.height - 9.5 * h
         let baseW: CGFloat   = 2.8 * w
         let baseH: CGFloat   = 4.0 * h
