@@ -7,6 +7,27 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.6.3</title>
+            <sparkle:shortVersionString>1.6.3</sparkle:shortVersionString>
+            <sparkle:version>19</sparkle:version>
+            <pubDate>Tue, 08 Jul 2026 12:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Shows your real per-model weekly pool (Fable, etc.)</h2>
+                <ul>
+                    <li>The usage API moved per-model limits into a new `limits` array with the model name in scope.model.display_name — the widget now reads it and shows a "Fable only" row instead of a stale "Sonnet" one</li>
+                    <li>Status-line bridge no longer surfaces all-zero usage when the status file lacks rate_limits</li>
+                    <li>5 new tests against the exact live API shape (60 total)</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.6.3-macos/ClaudeUsageWidget.dmg"
+                length="2401270"
+                type="application/octet-stream"
+                sparkle:edSignature="5n8IhaIQLAkwiMkUZgmE0coUA9tt+OTdVU1FTh5Sm1mxx3zz3DMn1kMKGwlroa3RCUdg7esNWMQqv95yLs+2DQ==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.6.2</title>
             <sparkle:shortVersionString>1.6.2</sparkle:shortVersionString>
             <sparkle:version>18</sparkle:version>

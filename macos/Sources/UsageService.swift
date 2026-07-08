@@ -241,12 +241,19 @@ class ClaudeUsageService {
             return nil
         }
 
+        // Only trust the bridge when it actually carries rate-limit data.
+        // The Claude Code v2.1.x status-line format writes model/cost/context
+        // but NOT rate_limits — returning nil here lets fetchUsage fall through
+        // to the OAuth API instead of surfacing all-zero usage.
+        guard let rateLimits = json["rate_limits"] as? [String: Any] else {
+            return nil
+        }
+
         var usage = UsageData()
         usage.isConnected = true
         usage.lastSyncTime = modDate
 
-        // rate_limits from Claude Code status line JSON
-        if let rateLimits = json["rate_limits"] as? [String: Any] {
+        do {
             if let fiveHour = rateLimits["five_hour"] as? [String: Any] {
                 usage.sessionUsagePercent = fiveHour["used_percentage"] as? Double ?? 0
                 if let resetsAt = fiveHour["resets_at"] as? Double {
@@ -392,9 +399,10 @@ class ClaudeUsageService {
             }
         }
 
-        // Seven-day sonnet only
+        // Seven-day sonnet only (old API; null on the Claude 5 `limits` format)
         if let sonnet = json["seven_day_sonnet"] as? [String: Any] {
             usage.weeklySonnetPercent = sonnet["utilization"] as? Double ?? 0
+            usage.hasSonnetLimit = true
         }
 
         // Seven-day opus (null for plans without an opus pool)
@@ -423,7 +431,51 @@ class ClaudeUsageService {
         }
         usage.extraWeeklyPools = extras.sorted { $0.slug < $1.slug }
 
+        // NEW (Claude 5 era): the `limits` array carries session, weekly_all,
+        // and — crucially — per-model weekly pools under `weekly_scoped`, with
+        // the model name in scope.model.display_name (e.g. "Fable"). The old
+        // top-level seven_day_sonnet/opus keys are null on this format, so when
+        // `limits` is present it is authoritative for the per-model rows.
+        if let limits = json["limits"] as? [[String: Any]], !limits.isEmpty {
+            var scoped: [(slug: String, percent: Double)] = []
+            for limit in limits {
+                let percent = Self.numericPercent(limit["percent"])
+                switch limit["kind"] as? String {
+                case "session":
+                    usage.sessionUsagePercent = percent
+                    if let r = limit["resets_at"] as? String {
+                        usage.sessionResetSeconds = secondsUntil(isoDate: r)
+                    }
+                case "weekly_all":
+                    usage.weeklyAllModelsPercent = percent
+                    if let r = limit["resets_at"] as? String {
+                        usage.weeklyAllModelsResetDate = formatResetDate(isoDate: r)
+                    }
+                case "weekly_scoped":
+                    let name = (limit["scope"] as? [String: Any])
+                        .flatMap { $0["model"] as? [String: Any] }
+                        .flatMap { $0["display_name"] as? String }
+                    scoped.append((slug: name ?? "Scoped", percent: percent))
+                default:
+                    break
+                }
+            }
+            if !scoped.isEmpty {
+                usage.extraWeeklyPools = scoped.sorted { $0.slug < $1.slug }
+                usage.hasSonnetLimit = false   // superseded by the scoped rows
+                usage.hasOpusLimit = false
+            }
+        }
+
         return usage
+    }
+
+    /// JSON numbers arrive as NSNumber; `percent` is an Int (57) in the limits
+    /// array but a Double elsewhere. Accept either.
+    private static func numericPercent(_ value: Any?) -> Double {
+        if let d = value as? Double { return d }
+        if let i = value as? Int { return Double(i) }
+        return 0
     }
 
     // MARK: - Date Helpers

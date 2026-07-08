@@ -386,7 +386,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return }
         blinkOpen = false
         let timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            guard let self = self, let button = self.statusItem.button else { return }
+            guard let self = self, self.statusItem.button != nil else { return }
             self.blinkOpen.toggle()
             let pct = self.viewModel.usage.isConnected ? self.viewModel.usage.sessionUsagePercent : 0
             let face: IconExpression = self.blinkOpen ? .idle : .syncing

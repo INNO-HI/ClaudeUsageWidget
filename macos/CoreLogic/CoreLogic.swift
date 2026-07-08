@@ -267,3 +267,32 @@ public func extraWeeklyPoolSlugs(fromKeys keys: [String]) -> [String] {
         .map { String($0.dropFirst("seven_day_".count)) }
         .sorted()
 }
+
+
+// MARK: - Weekly scoped pools (Claude 5 `limits` array)
+
+public struct ScopedPool: Equatable {
+    public let name: String
+    public let percent: Double
+    public init(name: String, percent: Double) { self.name = name; self.percent = percent }
+}
+
+/// Extract per-model weekly pools from the usage API's `limits` array.
+/// Each `weekly_scoped` entry carries the model name in
+/// scope.model.display_name (e.g. "Fable") — that's how the Claude 5 family's
+/// per-model limit surfaces now that the old top-level seven_day_<model> keys
+/// return null.
+public func parseWeeklyScopedPools(fromLimits limits: [[String: Any]]) -> [ScopedPool] {
+    var out: [ScopedPool] = []
+    for limit in limits where (limit["kind"] as? String) == "weekly_scoped" {
+        let percent: Double
+        if let d = limit["percent"] as? Double { percent = d }
+        else if let i = limit["percent"] as? Int { percent = Double(i) }
+        else { percent = 0 }
+        let name = (limit["scope"] as? [String: Any])
+            .flatMap { $0["model"] as? [String: Any] }
+            .flatMap { $0["display_name"] as? String } ?? "Scoped"
+        out.append(ScopedPool(name: name, percent: percent))
+    }
+    return out.sorted { $0.name < $1.name }
+}

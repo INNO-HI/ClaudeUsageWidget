@@ -716,20 +716,24 @@ struct PopoverContentView: View {
                         .foregroundColor(Theme.textSecondary)
                 }
 
-                Divider().background(Theme.border.opacity(0.3))
+                // Sonnet only — old API plans that populate seven_day_sonnet.
+                // On the Claude 5 `limits` format this is null, so the row is
+                // hidden and the scoped pools (Fable, …) render below instead.
+                if viewModel.usage.hasSonnetLimit {
+                    Divider().background(Theme.border.opacity(0.3))
 
-                // Sonnet only
-                HStack {
-                    Text(L.sonnetOnly)
-                        .font(AppFont.medium(12))
-                        .foregroundColor(Theme.textPrimary)
-                    Spacer()
-                    Text("\(Int(viewModel.usage.weeklySonnetPercent))%")
-                        .font(AppFont.bold(12))
-                        .foregroundColor(percentColor(viewModel.usage.weeklySonnetPercent))
+                    HStack {
+                        Text(L.sonnetOnly)
+                            .font(AppFont.medium(12))
+                            .foregroundColor(Theme.textPrimary)
+                        Spacer()
+                        Text("\(Int(viewModel.usage.weeklySonnetPercent))%")
+                            .font(AppFont.bold(12))
+                            .foregroundColor(percentColor(viewModel.usage.weeklySonnetPercent))
+                    }
+
+                    UsageProgressBar(percent: viewModel.usage.weeklySonnetPercent)
                 }
-
-                UsageProgressBar(percent: viewModel.usage.weeklySonnetPercent)
 
                 // Opus pool — only plans that have one (seven_day_opus non-null)
                 if viewModel.usage.hasOpusLimit {
@@ -833,7 +837,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.6.2")
+            Text("v1.6.3")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 

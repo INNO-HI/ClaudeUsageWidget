@@ -42,6 +42,7 @@ struct UsageData {
     var weeklyAllModelsPercent: Double = 0
     var weeklyAllModelsResetDate: String = ""
     var weeklySonnetPercent: Double = 0
+    var hasSonnetLimit: Bool = false
     /// seven_day_opus utilization — only present on plans with an Opus pool.
     var weeklyOpusPercent: Double = 0
     var hasOpusLimit: Bool = false

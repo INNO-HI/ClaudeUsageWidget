@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.3] — 2026-07-08
+
+### Fixed
+- **Per-model weekly pool showed "Sonnet" (or nothing) instead of the real model.** The usage API moved per-model limits out of the top-level `seven_day_sonnet` / `seven_day_opus` keys (now `null`) into a new **`limits` array**, where each `weekly_scoped` entry carries the model name in `scope.model.display_name` — e.g. **"Fable"** for the Claude 5 family. The parser now reads this array (falling back to the old keys for older plans), so the Weekly Limits card shows a **"Fable only"** row with the correct percentage. The hardcoded "Sonnet only" row is hidden unless the plan actually has Sonnet data.
+- **Status-line bridge no longer surfaces all-zero usage.** The Claude Code v2.1.x status file writes model/cost/context but not `rate_limits`; the bridge now returns `nil` in that case so `fetchUsage` falls through to the OAuth API instead of showing 0 % everywhere.
+
+### Internal
+- `parseWeeklyScopedPools(fromLimits:)` in CoreLogic with 5 tests, including the exact live `limits` shape for a Fable user (session 58 / weekly_all 61 / weekly_scoped Fable 100 critical). **Total: 60 tests.**
+- `UsageData.hasSonnetLimit` gates the legacy Sonnet row.
+
+---
+
 ## [1.6.2] — 2026-07-07
 
 ### Added

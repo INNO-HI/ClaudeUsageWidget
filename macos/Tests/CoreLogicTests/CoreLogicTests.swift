@@ -364,3 +364,47 @@ final class ExtraWeeklyPoolTests: XCTestCase {
         XCTAssertEqual(extraWeeklyPoolSlugs(fromKeys: ["five_hour", "extra_usage", "seven_dayish"]), [])
     }
 }
+
+
+final class WeeklyScopedPoolTests: XCTestCase {
+    /// The exact `limits` array shape returned by the live API for a Fable
+    /// (Claude 5) user: a weekly_scoped entry with scope.model.display_name.
+    func test_extractsFableFromRealLimits() {
+        let limits: [[String: Any]] = [
+            ["kind": "session", "group": "session", "percent": 57],
+            ["kind": "weekly_all", "group": "weekly", "percent": 60],
+            ["kind": "weekly_scoped", "group": "weekly", "percent": 100,
+             "severity": "critical",
+             "scope": ["model": ["id": NSNull(), "display_name": "Fable"]]],
+        ]
+        let pools = parseWeeklyScopedPools(fromLimits: limits)
+        XCTAssertEqual(pools, [ScopedPool(name: "Fable", percent: 100)])
+    }
+
+    func test_ignoresSessionAndWeeklyAll() {
+        let limits: [[String: Any]] = [
+            ["kind": "session", "percent": 57],
+            ["kind": "weekly_all", "percent": 60],
+        ]
+        XCTAssertEqual(parseWeeklyScopedPools(fromLimits: limits), [])
+    }
+
+    func test_multipleScopedSortedByName() {
+        let limits: [[String: Any]] = [
+            ["kind": "weekly_scoped", "percent": 30, "scope": ["model": ["display_name": "Opus"]]],
+            ["kind": "weekly_scoped", "percent": 100, "scope": ["model": ["display_name": "Fable"]]],
+        ]
+        XCTAssertEqual(parseWeeklyScopedPools(fromLimits: limits),
+                       [ScopedPool(name: "Fable", percent: 100), ScopedPool(name: "Opus", percent: 30)])
+    }
+
+    func test_missingScopeFallsBackToScoped() {
+        let limits: [[String: Any]] = [["kind": "weekly_scoped", "percent": 42]]
+        XCTAssertEqual(parseWeeklyScopedPools(fromLimits: limits), [ScopedPool(name: "Scoped", percent: 42)])
+    }
+
+    func test_doublePercentAlsoAccepted() {
+        let limits: [[String: Any]] = [["kind": "weekly_scoped", "percent": 88.5, "scope": ["model": ["display_name": "Fable"]]]]
+        XCTAssertEqual(parseWeeklyScopedPools(fromLimits: limits), [ScopedPool(name: "Fable", percent: 88.5)])
+    }
+}
