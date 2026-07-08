@@ -220,7 +220,10 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.6.4 (latest)
+### v1.6.5 (latest)
+- **Living character** — the menu-bar face plays occasional idle animations (blink, double-blink, glance left/right) like a game character. Random intervals, 0% CPU, never distracting
+
+### v1.6.4
 - **Usage-gradient menu-bar icon** (green → amber → red by usage) + **calmer active state** (the constant wobble is gone; the icon stays still while Claude works)
 
 ### v1.6.3

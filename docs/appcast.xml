@@ -7,6 +7,27 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.6.5</title>
+            <sparkle:shortVersionString>1.6.5</sparkle:shortVersionString>
+            <sparkle:version>21</sparkle:version>
+            <pubDate>Tue, 08 Jul 2026 15:30:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>The character is alive — occasional blink & glance</h2>
+                <ul>
+                    <li>The menu-bar face now plays occasional idle animations like a game character: it blinks, double-blinks, and glances left/right (the eyes actually move)</li>
+                    <li>Beats fire at random intervals (~5-10s idle, ~2.5-5s while Claude works) so it feels alive without ever being distracting</li>
+                    <li>Still 0% CPU, % text never moves, Reduce Motion respected</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.6.5-macos/ClaudeUsageWidget.dmg"
+                length="2402056"
+                type="application/octet-stream"
+                sparkle:edSignature="UdyhK5ACAUUPln77HIQhpLMe7yFw1Gv6rXPGaUbc25lPAjsyGSHIPHXnvIZSc281bePm3cE4aOgJH4HF+GvrAQ==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.6.4</title>
             <sparkle:shortVersionString>1.6.4</sparkle:shortVersionString>
             <sparkle:version>20</sparkle:version>
