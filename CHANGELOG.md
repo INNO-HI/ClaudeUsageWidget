@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.7] — 2026-07-10
+
+### Changed
+- **The menu-bar face is back to the classic Claude orange (#D97757), always.** The usage gradient (green → amber → red) introduced in 1.6.4 read as off-brand and muddy, so the icon is a single clean orange again regardless of usage. All the character motion from 1.6.6 (hop / wiggle / nod / glance / blink) is unchanged.
+
+---
+
 ## [1.6.6] — 2026-07-08
 
 ### Added

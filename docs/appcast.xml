@@ -7,6 +7,26 @@
         <link>https://inno-hi.github.io/ClaudeUsageWidget/</link>
 
         <item>
+            <title>Version 1.6.7</title>
+            <sparkle:shortVersionString>1.6.7</sparkle:shortVersionString>
+            <sparkle:version>23</sparkle:version>
+            <pubDate>Fri, 10 Jul 2026 11:00:00 +0900</pubDate>
+            <description><![CDATA[
+                <h2>Back to the classic Claude orange</h2>
+                <ul>
+                    <li>The menu-bar face is a single clean <b>Claude orange (#D97757)</b> again, always — the usage gradient (green → amber → red) read as off-brand and muddy</li>
+                    <li>All the character motion from 1.6.6 (hop / wiggle / nod / glance / blink) is unchanged</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/INNO-HI/ClaudeUsageWidget/releases/download/v1.6.7-macos/ClaudeUsageWidget.dmg"
+                length="2409917"
+                type="application/octet-stream"
+                sparkle:edSignature="3tHUUIIqsl/gmWqicZOPybjS60vmz+6OeXYAzg2f8EjWtV2MiIqt1Q66vUGqxdombXxSS0lr2znpI4Lg9UXSAw==" />
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+        </item>
+
+        <item>
             <title>Version 1.6.6</title>
             <sparkle:shortVersionString>1.6.6</sparkle:shortVersionString>
             <sparkle:version>22</sparkle:version>

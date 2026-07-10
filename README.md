@@ -220,7 +220,10 @@ You're already on the latest version. Sparkle silently confirms when you're up t
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
-### v1.6.6 (latest)
+### v1.6.7 (latest)
+- **Back to the classic Claude orange (#D97757)** — the usage gradient (green → amber → red) read as off-brand and muddy; the menu-bar face is a single clean orange again. All the 1.6.6 character motion is unchanged
+
+### v1.6.6
 - **The whole character moves now** — the menu-bar face is a full vector character with a repertoire of motions: it **hops** (crouch → leap → land → rebound), **wiggles**, **nods**, glances around, blinks, peeks, and gets excited. Random intervals (weighted toward quiet blinks), 0% CPU, % text pinned, never distracting
 
 ### v1.6.5

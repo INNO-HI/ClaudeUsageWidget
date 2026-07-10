@@ -837,7 +837,7 @@ struct PopoverContentView: View {
 
     private var footerSection: some View {
         HStack(spacing: 12) {
-            Text("v1.6.6")
+            Text("v1.6.7")
                 .font(AppFont.regular(11))
                 .foregroundColor(Theme.textSecondary)
 
@@ -1305,23 +1305,12 @@ struct ClaudeCodeIconView: View {
 
 // MARK: - Menu Bar Icon Helper
 
-/// Smooth usage gradient: green (plenty of room) → amber (mid) → red (full).
-/// 0% #10B981 → 50% #F59E0B → 100% #F87171. Interpolated in sRGB.
+/// The menu-bar face is always the Claude brand orange (#D97757). We tried a
+/// usage gradient (green → amber → red) in v1.6.4–1.6.6, but the shifting hue
+/// read as off — the plain orange is cleaner and on-brand. `percent` is kept in
+/// the signature so the cache key and call sites stay unchanged.
 private func menuBarIconColor(for percent: Double) -> NSColor {
-    let p = max(0, min(100, percent)) / 100.0
-    let green = (r: 16.0,  g: 185.0, b: 129.0)  // #10B981
-    let amber = (r: 245.0, g: 158.0, b: 11.0)   // #F59E0B
-    let red   = (r: 248.0, g: 113.0, b: 113.0)  // #F87171
-    func lerp(_ a: Double, _ b: Double, _ t: Double) -> Double { a + (b - a) * t }
-    let c: (r: Double, g: Double, b: Double)
-    if p < 0.5 {
-        let t = p / 0.5
-        c = (lerp(green.r, amber.r, t), lerp(green.g, amber.g, t), lerp(green.b, amber.b, t))
-    } else {
-        let t = (p - 0.5) / 0.5
-        c = (lerp(amber.r, red.r, t), lerp(amber.g, red.g, t), lerp(amber.b, red.b, t))
-    }
-    return NSColor(srgbRed: c.r/255.0, green: c.g/255.0, blue: c.b/255.0, alpha: 1.0)
+    return NSColor(srgbRed: 217.0/255.0, green: 119.0/255.0, blue: 87.0/255.0, alpha: 1.0)  // #D97757
 }
 
 /// Four expressions the menu-bar face can wear. The body silhouette stays
